@@ -14,7 +14,7 @@ const client = new SapphireClient({
 		IntentsBitField.Flags.MessageContent
 	],
 	logger: {
-		level: process.env['NODE_ENV'] !== 'production' ? LogLevel.Info : LogLevel.Debug
+		level: process.env['NODE_ENV'] === 'production' ? LogLevel.Info : LogLevel.Debug
 	},
 	loadMessageCommandListeners: true,
 	// Configuración de BullMQ (nescesario para scheduled-tasks)
