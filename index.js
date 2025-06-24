@@ -46,7 +46,8 @@ async function connectToDiscord() {
     }
 
     // Setup event listeners
-    discordClient.removeAllListeners();
+   
+    //discordClient.removeAllListeners();
     
     /*discordClient.on('ready', () => {
       console.log(`✅ Discord bot ready as ${discordClient.user.tag}`);
