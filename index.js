@@ -48,10 +48,10 @@ async function connectToDiscord() {
     // Setup event listeners
     discordClient.removeAllListeners();
     
-    discordClient.on('ready', () => {
+    /*discordClient.on('ready', () => {
       console.log(`✅ Discord bot ready as ${discordClient.user.tag}`);
       loadEvents(discordClient);
-    });
+    });*/
 
     discordClient.on('disconnect', () => {
       console.warn('[DISCORD] Disconnected from Discord');
