@@ -312,7 +312,7 @@ class AccessibilityChangeDetector {
         }
     }
 
-formatSummaryEmbeds(changes, metro) {
+    formatSummaryEmbeds(changes, metro) {
     const elevators = [];
     const escalators = [];
     
@@ -335,8 +335,10 @@ formatSummaryEmbeds(changes, metro) {
     const maxFieldLength = 1000; // Discord field limit
     const maxEmbedLength = 6000; // Discord embed limit
     
-    // Helper function to create grouped embeds
-    const createGroupedEmbeds = (items, titlePrefix) => {
+    // Helper function to create grouped embeds for a specific equipment type
+    const createEquipmentEmbed = (items, title) => {
+        if (items.length === 0) return null;
+        
         // Group by line
         const lineGroups = {};
         
@@ -356,11 +358,19 @@ formatSummaryEmbeds(changes, metro) {
             lineGroups[lineKey].items.push(change);
         });
         
-        // Create embeds for each line group
+        // Create embed with title and timestamp
+        let embed = new EmbedBuilder()
+            .setColor(0x0052A5)
+            .setTitle(title)
+            .setDescription(`Última Actualización: ${this.timeHelpers.formatDateTime('DD/MM/YYYY HH:mm')}`)
+            .setTimestamp();
+        
+        // Process each line group
         Object.values(lineGroups).forEach(group => {
             const nowOperational = [];
             const nowNonOperational = [];
             
+            // Separate operational and non-operational changes
             group.items.forEach(change => {
                 const stationCode = change.equipmentId.split('-')[0];
                 const station = Object.values(metro._staticData.stations).find(s => s.code === stationCode);
@@ -370,75 +380,57 @@ formatSummaryEmbeds(changes, metro) {
                 
                 if (change.type === 'state_change' || change.type === 'new') {
                     if (change.current?.estado === 1) {
-                        nowOperational.push(`- ${stationName}:\n  - ${equipmentText}`);
+                        nowOperational.push(`- ${stationName}: ${equipmentText}`);
                     } else if (change.current?.estado === 0) {
-                        nowNonOperational.push(`- ${stationName}:\n  - ${equipmentText}`);
+                        nowNonOperational.push(`- ${stationName}: ${equipmentText}`);
                     }
                 }
             });
             
-            // Create embed with line emoji in title
-            let embed = new EmbedBuilder()
-                .setColor(0x0052A5)
-                .setTitle(`${titlePrefix} ${group.lineEmoji} Línea ${group.lineNumber}`)
-                .setDescription(`Última Actualización: ${this.timeHelpers.formatDateTime('DD/MM/YYYY HH:mm')}\n\n`)
-                .setTimestamp();
+            // Add line section to embed
+            let lineSection = `**${group.lineEmoji} Línea ${group.lineNumber}**\n`;
             
-            // Add operational changes in chunks
+            // Add operational changes
             if (nowOperational.length > 0) {
-                let operationalChunks = this.chunkArray(nowOperational.join('\n'), maxFieldLength);
-                operationalChunks.forEach((chunk, index) => {
-                    if (index > 0 || embed.toJSON().fields?.length > 0) {
-                        // If we already have fields or this is a subsequent chunk, create new embed
-                        embeds.push(embed);
-                        embed = new EmbedBuilder()
-                            .setColor(0x0052A5)
-                            .setTitle(`${titlePrefix} ${group.lineEmoji} Línea ${group.lineNumber} - Continuación`)
-                            .setTimestamp();
-                    }
-                    embed.addFields({
-                        name: '- ✅ Ahora operativos',
-                        value: chunk,
-                        inline: false
-                    });
-                });
+                lineSection += `✅ Operativos:\n${nowOperational.join('\n')}\n\n`;
             }
             
-            // Add non-operational changes in chunks
+            // Add non-operational changes
             if (nowNonOperational.length > 0) {
-                let nonOperationalChunks = this.chunkArray(nowNonOperational.join('\n'), maxFieldLength);
-                nonOperationalChunks.forEach((chunk, index) => {
-                    if (embed.toJSON().fields?.length >= 5 || 
-                        JSON.stringify(embed.toJSON()).length > maxEmbedLength - 2000) {
-                        embeds.push(embed);
-                        embed = new EmbedBuilder()
-                            .setColor(0x0052A5)
-                            .setTitle(`${titlePrefix} ${group.lineEmoji} Línea ${group.lineNumber} - Continuación`)
-                            .setTimestamp();
-                    }
-                    embed.addFields({
-                        name: '- ❌ Ahora fuera de servicio',
-                        value: chunk,
-                        inline: false
-                    });
-                });
+                lineSection += `❌ Fuera de servicio:\n${nowNonOperational.join('\n')}\n\n`;
             }
             
-            // Add the last embed if it has content
-            if (embed.toJSON().fields?.length > 0) {
+            // Check if we need to split into a new embed
+            if (embed.toJSON().fields?.length > 0 && 
+                (JSON.stringify(embed.toJSON()).length + lineSection.length > maxEmbedLength - 2000)) {
                 embeds.push(embed);
+                embed = new EmbedBuilder()
+                    .setColor(0x0052A5)
+                    .setTitle(`${title} (Continuación)`)
+                    .setTimestamp();
             }
+            
+            // Add line section as a field
+            embed.addFields({
+                name: '\u200B', // Zero-width space
+                value: lineSection,
+                inline: false
+            });
         });
+        
+        return embed;
     };
     
-    // Create embeds for elevators
+    // Create elevator embed if there are elevator changes
     if (elevators.length > 0) {
-        createGroupedEmbeds(elevators, '♿ Resumen de Ascensores');
+        const elevatorEmbed = createEquipmentEmbed(elevators, '♿ Resumen de Ascensores');
+        if (elevatorEmbed) embeds.push(elevatorEmbed);
     }
     
-    // Create embeds for escalators
+    // Create escalator embed if there are escalator changes
     if (escalators.length > 0) {
-        createGroupedEmbeds(escalators, '♿ Resumen de Escaleras Mecánicas');
+        const escalatorEmbed = createEquipmentEmbed(escalators, '♿ Resumen de Escaleras Mecánicas');
+        if (escalatorEmbed) embeds.push(escalatorEmbed);
     }
     
     return embeds;
