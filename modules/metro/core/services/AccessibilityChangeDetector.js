@@ -388,16 +388,16 @@ class AccessibilityChangeDetector {
             });
             
             // Add line section to embed
-            let lineSection = `**${group.lineEmoji} Línea ${group.lineNumber}**\n`;
+            let lineSection = `## 👉 Línea ${metroConfig.linesEmojis[group.lineNumber]} **\n`;
             
             // Add operational changes
             if (nowOperational.length > 0) {
-                lineSection += `✅ Operativos:\n${nowOperational.join('\n')}\n\n`;
+                lineSection += `### ✅ Ahora Operativos:\n${nowOperational.join('\n')}\n`;
             }
             
             // Add non-operational changes
             if (nowNonOperational.length > 0) {
-                lineSection += `❌ Fuera de servicio:\n${nowNonOperational.join('\n')}\n\n`;
+                lineSection += `### ❌ Ahora Fuera de servicio:\n${nowNonOperational.join('\n')}\n`;
             }
             
             // Check if we need to split into a new embed
