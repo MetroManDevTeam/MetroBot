@@ -30,22 +30,10 @@ export class MetroAPI {
 		return result;
 	}
 
-	private async fetchRawNetworkData() {
-		const { data } = await axios.get('https://www.metro.cl/api/estadoRedDetalle.php');
-		return data;
-	}
-
-	private normalizeRawStations(stations: RawStationInfo[]): StationInfo[] {
-		return stations.map((station) => ({
-			code: station.codigo,
-			statusCode: this.isOperating() ? station.estado : '0',
-			name: station.nombre,
-			transfer: station.combinacion || null,
-			messages: { primary: station.descripcion, secondary: station.descripcion_app, tertiary: station.mensaje || null }
-		}));
-	}
-
-	private isOperating() {
+	/**
+	 * Comprueba si la red del Metro de Santiago está operando
+	 */
+	public isOperating() {
 		const now = new Date();
 		const day = now.getDay(); // 0 = Domingo, 6 = Sábado
 		const minutes = now.getHours() * 60 + now.getMinutes();
@@ -75,6 +63,21 @@ export class MetroAPI {
 		}
 
 		// start ≤ ahora ≤ end
-		return minutes >= start && minutes <= end;
+		return start <= minutes && minutes <= end;
+	}
+
+	private async fetchRawNetworkData() {
+		const { data } = await axios.get('https://www.metro.cl/api/estadoRedDetalle.php');
+		return data;
+	}
+
+	private normalizeRawStations(stations: RawStationInfo[]): StationInfo[] {
+		return stations.map((station) => ({
+			code: station.codigo,
+			statusCode: this.isOperating() ? station.estado : '0',
+			name: station.nombre,
+			transfer: station.combinacion || null,
+			messages: { primary: station.descripcion, secondary: station.descripcion_app, tertiary: station.mensaje || null }
+		}));
 	}
 }
