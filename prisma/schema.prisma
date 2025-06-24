@@ -18,20 +18,37 @@ enum LineId {
   l6
 }
 
+enum ExpressRoute {
+  common
+  green
+  red
+}
+
 model GuildConfig {
-  guildId               String  @id @map("guild_id")
-  metroUpdatesChannelId String? @map("metro_updates_channel_id")
+  guildId               String               @id @map("guild_id")
+  metroUpdatesChannelId String?              @map("metro_updates_channel_id")
+  metroStatusMessages   MetroStatusMessage[]
 
   @@map("guild_configs")
 }
 
 model MetroStatusMessage {
-  messageId String @id @map("message_id")
-  guildId   String @map("guild_id")
-  channelId String @map("channel_id")
-  lineId    LineId @map("line_id")
-  overrides Json?
-  infoHash  String @map("info_hash")
+  messageId   String      @id @map("message_id")
+  guildId     String      @map("guild_id")
+  channelId   String      @map("channel_id")
+  line        LineId      @map("line")
+  overrides   Json?
+  infoHash    String      @map("info_hash")
+  guildConfig GuildConfig @relation(fields: [guildId], references: [guildId])
 
   @@map("metro_status_messages")
+}
+
+model MetroStationDetails {
+  stationId String        @id @map("station_id")
+  line      LineId
+  name      String
+  route     ExpressRoute?
+
+  @@map("metro_station_details")
 }
