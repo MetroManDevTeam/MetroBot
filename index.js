@@ -1,16 +1,11 @@
-console.log('[BOOT] Starting bot initialization process...');
 require('dotenv').config();
-console.log('[CONFIG] Environment variables loaded');
 
 // ======================
-// DISCORD BOT INITIALIZATION
+// DISCORD BOT (Original Code - Preserved)
 // ======================
-console.log('[DISCORD] Loading Discord.js modules...');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const { readdirSync } = require('fs');
 const { join } = require('path');
-
-console.log('[DISCORD] Loading internal modules...');
 const logger = require('./events/logger');
 const loadEvents = require('./events');
 const NewsWatcher = require('./events/NewsWatcher');
@@ -18,7 +13,6 @@ const AdvancedCommandLoader = require('./core/loaders/AdvancedCommandLoader');
 const { setClient } = require('./utils/clientManager');
 const metroConfig = require('./config/metro/metroConfig');
 
-console.log('[DISCORD] Creating Discord client instance...');
 const discordClient = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -28,81 +22,15 @@ const discordClient = new Client({
   ]
 });
 
-// ======================
-// IMPROVED RECONNECTION SYSTEM
-// ======================
-const MAX_RETRIES = Infinity; // Keep retrying forever
-const RETRY_DELAY = 60000; // 1 minute
-let isShuttingDown = false;
+// Load events and commands
+loadEvents(discordClient);
+discordClient.on('debug', console.log);
 
-async function connectToDiscord() {
-  if (isShuttingDown) return;
-
-  try {
-    console.log('[DISCORD] Attempting to connect...');
-    
-    if (!process.env.DISCORD_TOKEN) {
-      throw new Error('DISCORD_TOKEN is not defined in environment variables');
-    }
-
-    // Setup event listeners
-   
-    //discordClient.removeAllListeners();
-    
-    /*discordClient.on('ready', () => {
-      console.log(`✅ Discord bot ready as ${discordClient.user.tag}`);
-      loadEvents(discordClient);
-    });*/
-
-    discordClient.on('disconnect', () => {
-      console.warn('[DISCORD] Disconnected from Discord');
-      scheduleReconnect();
-    });
-
-    discordClient.on('error', error => {
-      console.error('[DISCORD] Error:', error);
-    });
-
-    discordClient.on('warn', warning => {
-      console.warn('[DISCORD] Warning:', warning);
-    });
-
-    // Add login timeout
-    const loginTimeout = 30000; // 30 seconds
-    const loginPromise = discordClient.login(process.env.DISCORD_TOKEN);
-    
-    // Race between login and timeout
-    await Promise.race([
-      loginPromise,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Login timeout')), loginTimeout)
-      )
-    ]);
-    
-    console.log('[DISCORD] Login successful');
-  } catch (error) {
-    console.error('[DISCORD] Connection failed:', error.message);
-    scheduleReconnect();
-  }
-}
-
-function scheduleReconnect() {
-  if (isShuttingDown) return;
-
-  console.log(`[DISCORD] Will attempt to reconnect in ${RETRY_DELAY/1000} seconds...`);
-  setTimeout(() => {
-    if (!discordClient.isReady() && !isShuttingDown) {
-      connectToDiscord();
-    }
-  }, RETRY_DELAY);
-}
-
-// ======================
-// BOT SETUP (UNCHANGED FUNCTIONALITY)
-// ======================
 discordClient.commands = new Collection();
 discordClient.prefixCommands = new Collection();
 discordClient.metroCore = require('./modules/metro/core/MetroCore');
+
+// Initialize command loader
 discordClient.commandLoader = new AdvancedCommandLoader(discordClient);
 
 // Load prefix commands
@@ -139,13 +67,15 @@ discordClient.on('interactionCreate', async interaction => {
   }
 });
 
-setClient(discordClient);
+setClient(discordClient) 
 
-// Message handling (unchanged)
+// Message handling (your original metro alert system)
+// Metro alert forwarding (your original code)
 discordClient.on('messageCreate', async message => {
   if (message.author.bot) return;
   const prefix = '!';
   
+  // Prefix commands (unchanged)
   if (message.content.startsWith(prefix)) {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
@@ -159,6 +89,7 @@ discordClient.on('messageCreate', async message => {
     }
   }
 
+  // Metro alert forwarding
   if (message.channel.id !== '1377398484931575938') return;
   const targetChannel = await discordClient.channels.fetch('1347146518943105085');
   if (!targetChannel) return;
@@ -193,7 +124,10 @@ discordClient.on('messageCreate', async message => {
 
     await targetChannel.send(options);
 
+    // Modified Telegram message handling
     let telegramMessage = '';
+    
+    // Add urgency emoji/text
     if (firstChar) {
       const telegramEmoji = _translateToTelegramEmoji(firstChar);
       telegramMessage += `${telegramEmoji} `;
@@ -202,6 +136,7 @@ discordClient.on('messageCreate', async message => {
     telegramMessage += `<b>Información Metro</b>\n`;
     if (title) telegramMessage += `<b>${title}</b>\n`;
     
+    // Process content for Telegram (replace Discord-specific emojis)
     const telegramContent = _processForTelegram(content);
     telegramMessage += telegramContent;
 
@@ -218,19 +153,25 @@ discordClient.on('messageCreate', async message => {
   }
 });
 
-// Helper functions (unchanged)
+// New helper functions for Telegram
 function _translateToTelegramEmoji(discordEmoji) {
   const emojiMap = {
-    '🚨': '🚨', '⚠️': '⚠️', 'ℹ️': 'ℹ️',
-    '🔵': '🔵', '🟢': '🟢', 
-    '🟡': '🟡', '🔴': '🔴'
+    '🚨': '🚨', // Alarm
+    '⚠️': '⚠️', // Warning
+    'ℹ️': 'ℹ️', // Info
+    '🔵': '🔵', // Blue circle
+    '🟢': '🟢', // Green circle
+    '🟡': '🟡', // Yellow circle
+    '🔴': '🔴'  // Red circle
   };
   return emojiMap[discordEmoji] || '';
 }
 
 function _processForTelegram(text) {
   if (typeof text !== 'string') return text;
-  return text
+  
+  // Replace line indicators with text representations
+  let processedText = text
     .replace(/\bl1\b/gi, 'Línea 1')
     .replace(/\bl2\b/gi, 'Línea 2')
     .replace(/\bl3\b/gi, 'Línea 3')
@@ -244,8 +185,11 @@ function _processForTelegram(text) {
     .replace(/\$verde/gi, '[Estación Verde]')
     .replace(/\$roja/gi, '[Estación Roja]')
     .replace(/\$comun/gi, '[Estación Común]');
+    
+  return processedText;
 }
 
+// Helper functions (preserved)
 function _translateUrgencyEmoji(emoji) {
   const urgencyMap = {
     '🚨': 'Alta', '⚠️': 'Media', 'ℹ️': 'Baja',
@@ -267,7 +211,7 @@ function _getUrgencyColor(urgency) {
 
 function _processLineKeywords(text) {
   if (typeof text !== 'string') return text;
-  return text
+  let processedText = text
     .replace(/\bl1\b/gi, metroConfig.linesEmojis.l1)
     .replace(/\bl2\b/gi, metroConfig.linesEmojis.l2)
     .replace(/\bl3\b/gi, metroConfig.linesEmojis.l3)
@@ -281,57 +225,38 @@ function _processLineKeywords(text) {
     .replace(/\$verde/gi, metroConfig.stationIcons.verde.emoji)
     .replace(/\$roja/gi, metroConfig.stationIcons.roja.emoji)
     .replace(/\$comun/gi, `${metroConfig.stationIcons.comun.emoji}`);
+  return processedText;
 }
 
 // ======================
-// TELEGRAM BOT INITIALIZATION
+// TELEGRAM BOT (New Code)
 // ======================
-console.log('[TELEGRAM] Loading Telegram bot module...');
+
 const TelegramBot = require('./Telegram/bot');
 const telegramBot = TelegramBot;
 
-// ======================
-// LAUNCH SEQUENCE
-// ======================
-console.log('[BOOT] Starting bot launch sequence...');
+// Launch Both Bots
 (async () => {
   try {
-    
+    // Start Discord
+    await discordClient.login(process.env.DISCORD_TOKEN);
+    console.log('✅Discord bot ready');
 
     // Start Telegram
-    console.log('[TELEGRAM] Launching...');
-    await telegramBot.launch()
-       console.log('✅ Telegram bot ready')
-      
+    await telegramBot.launch();
+    console.log('✅Telegram bot ready');
 
     // Graceful shutdown
-    console.log('[BOOT] Setting up shutdown handlers...');
-    const shutdown = async (signal) => {
-      isShuttingDown = true;
-      console.log(`[SHUTDOWN] Received ${signal}, shutting down...`);
-      try {
-        if (discordClient.isReady()) {
-          await discordClient.destroy();
-          console.log('[DISCORD] Client destroyed');
-        }
-        await telegramBot.stop(signal);
-        console.log('[TELEGRAM] Bot stopped');
-        process.exit(0);
-      } catch (err) {
-        console.error('[SHUTDOWN] Error during shutdown:', err);
-        process.exit(1);
-      }
-    };
-
-    process.once('SIGINT', () => shutdown('SIGINT'));
-    process.once('SIGTERM', () => shutdown('SIGTERM'));
-
-
-    // Start Discord connection
-    await connectToDiscord();
-    
-    console.log('[BOOT] All systems operational');
+    process.once('SIGINT', () => {
+      discordClient.destroy();
+      telegramBot.stop('SIGINT');
+    });
+    process.once('SIGTERM', () => {
+      discordClient.destroy();
+      telegramBot.stop('SIGTERM');
+    });
   } catch (error) {
-    console.error('[BOOT] Initialization failed:', error);
+    console.error('Startup failed:', error);
+    process.exit(1);
   }
 })();
