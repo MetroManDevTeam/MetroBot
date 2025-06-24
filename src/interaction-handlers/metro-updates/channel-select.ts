@@ -73,7 +73,7 @@ export class MenuHandler extends InteractionHandler {
 					guildId: interaction.guildId,
 					channelId: updatesChannel.id,
 					messageId: message.id,
-					lineId: lineInfo.id,
+					line: lineInfo.id,
 					infoHash: sha256hash(JSON.stringify(lineInfo))
 				}
 			});

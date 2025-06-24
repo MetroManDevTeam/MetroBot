@@ -11,6 +11,7 @@ import { Time } from '@sapphire/time-utilities';
 export class UserTask extends ScheduledTask {
 	public override async run() {
 		const statusMessages = await getMetroUpdatesMessages();
+
 		const networkInfo = await this.container.metro.getNetworkInfo();
 
 		// Necesario para evitar actualizar los mensajes antes de que discord.js esté listo
@@ -24,15 +25,13 @@ export class UserTask extends ScheduledTask {
 
 		for (const statusMessage of statusMessages) {
 			// Revisar si el hash de la base de datos es igual al de la API de Metro
-			const lineInfo = networkInfo[statusMessage.lineId];
+			const lineInfo = networkInfo[statusMessage.line];
 			const currentInfoHash = sha256hash(JSON.stringify(lineInfo));
 
 			// Si son iguales, no actualizar el mensaje
 			if (statusMessage.infoHash === currentInfoHash) continue;
 
-			this.container.logger.debug(
-				`[MetroStatusUpdates] Se detectaron cambios en el estado de la línea ${statusMessage.lineId}, actualizando...`
-			);
+			this.container.logger.debug(`[MetroStatusUpdates] Se detectaron cambios en el estado de la línea ${statusMessage.line}, actualizando...`);
 
 			// Si los hashes son distintos, actualizar el mensaje
 			await this.container.prisma.metroStatusMessage.update({
@@ -60,14 +59,14 @@ export class UserTask extends ScheduledTask {
 
 			if (!updateMessage) {
 				this.container.logger.debug(
-					`[MetroStatusUpdates] No se pudo encontrar el mensaje con la id ${statusMessage.messageId} correspondiente al estado de ${statusMessage.lineId}`
+					`[MetroStatusUpdates] No se pudo encontrar el mensaje con la id ${statusMessage.messageId} correspondiente al estado de ${statusMessage.line}`
 				);
 				continue;
 			}
 
 			await updateMessage.edit({ embeds: [await getMetroLineStatusEmbed(lineInfo)] });
 
-			this.container.logger.debug(`[MetroStatusUpdates] Se actualizó el estado de ${statusMessage.lineId} correctamente`);
+			this.container.logger.debug(`[MetroStatusUpdates] Se actualizó el estado de ${statusMessage.line} correctamente`);
 		}
 	}
 }
