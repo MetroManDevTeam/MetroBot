@@ -54,7 +54,7 @@ export class ButtonHandler extends InteractionHandler {
 		await clearStatusMessages(interaction.guildId);
 
 		// Objeto con la información sobre cada linea de la red
-		const statusInfo = await this.container.metro.getNetworkInfo();
+		const statusInfo = await this.container.metro.getMetroNetworkStatus();
 
 		// Recolectar todas las promesas en un array
 		const promises = Object.values(statusInfo).map(async (lineInfo) => {
@@ -65,7 +65,7 @@ export class ButtonHandler extends InteractionHandler {
 				data: {
 					guildId: interaction.guildId,
 					channelId: selectedChannelId,
-					lineId: lineInfo.id,
+					lineId: lineInfo.lineId,
 					messageId: statusMessage.id,
 					infoHash: sha256hash(JSON.stringify(lineInfo))
 				}

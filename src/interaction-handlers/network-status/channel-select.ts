@@ -81,7 +81,7 @@ export class MenuHandler extends InteractionHandler {
 		await setStatusChannelId(interaction.guildId, selectedChannelId);
 
 		// Objeto con la información sobre cada linea de la red
-		const statusInfo = await this.container.metro.getNetworkInfo();
+		const statusInfo = await this.container.metro.getMetroNetworkStatus();
 
 		// Recolectar todas las promesas en un array
 		const promises = Object.values(statusInfo).map(async (lineInfo) => {
@@ -92,7 +92,7 @@ export class MenuHandler extends InteractionHandler {
 				data: {
 					guildId: interaction.guildId,
 					channelId: selectedChannelId,
-					lineId: lineInfo.id,
+					lineId: lineInfo.lineId,
 					messageId: statusMessage.id,
 					infoHash: sha256hash(JSON.stringify(lineInfo)) // Hash usado para detectar cambios en el estado de la linea (ver scheduled-tasks/network-status/update.ts)
 				}

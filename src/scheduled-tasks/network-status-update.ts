@@ -29,7 +29,7 @@ export class UserTask extends ScheduledTask {
 		// Recuperar mensajes de estado de la db
 		const messagesData = await getStatusMessages();
 
-		const networkInfo = await this.container.metro.getNetworkInfo();
+		const networkInfo = await this.container.metro.getMetroNetworkStatus();
 
 		for (const messageData of messagesData) {
 			// Revisar si el hash de la base de datos es igual al de la API de Metro
