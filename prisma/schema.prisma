@@ -44,3 +44,19 @@ enum LineId {
   l5
   l6
 }
+
+model StationDetails {
+  stationId    String       @id
+  lineId       LineId
+  stationName  String
+  expressRoute ExpressRoute
+  features     Json?
+
+  @@map("station_details")
+}
+
+enum ExpressRoute {
+  common
+  green
+  red
+}
