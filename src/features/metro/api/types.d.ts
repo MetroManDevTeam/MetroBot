@@ -2,7 +2,7 @@ export type LineId = 'l1' | 'l2' | 'l3' | 'l4' | 'l4a' | 'l5' | 'l6';
 type RawStatusCode = '1' | '2' | '3' | '4';
 type StatusCode = '0' | '1' | '2' | '3' | '4' | '5';
 
-export interface RawStationInfo {
+export interface RawNWInfoStation {
 	nombre: string;
 	codigo: string;
 	estado: RawStatusCode;
@@ -12,18 +12,18 @@ export interface RawStationInfo {
 	mensaje: string;
 }
 
-export interface RawLineInfo {
+export interface RawNWInfoLine {
 	estado: RawStatusCode;
 	mensaje: string;
 	mensaje_app: string;
-	estaciones: RawStationInfo[];
+	estaciones: RawNWInfoStation[];
 }
 
-export type RawNetworkInfo = {
-	[key in LineId]: RawLineInfo;
+export type RawNWInfo = {
+	[key in LineId]: RawNWInfoLine;
 };
 
-export interface StationInfo {
+export interface NWInfoStation {
 	code: string;
 	statusCode: StatusCode;
 	name: string;
@@ -35,16 +35,16 @@ export interface StationInfo {
 	};
 }
 
-export interface LineInfo {
+export interface NWInfoLine {
 	id: LineId;
 	statusCode: StatusCode;
 	messages: {
 		primary: string;
 		secondary: string | null;
 	};
-	stations: StationInfo[];
+	stations: NWInfoStation[];
 }
 
-export type NetworkInfo = {
-	[key in LineId]: LineInfo;
+export type NWInfo = {
+	[key in LineId]: NWInfoLine;
 };

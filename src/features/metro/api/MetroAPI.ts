@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RawNetworkInfo, NetworkInfo, LineId } from './types';
+import { RawNWInfo, NWInfo, LineId } from './types';
 
 /**
  * Clase principal para interactuar con las APIs del Metro de Santiago
@@ -11,7 +11,7 @@ export class MetroAPI {
 	 */
 	public async getNetworkInfo() {
 		const rawData = await this.fetchRawNetworkData();
-		const result = {} as NetworkInfo;
+		const result = {} as NWInfo;
 
 		for (const [line, lineInfo] of Object.entries(rawData)) {
 			const key = line as LineId;
@@ -72,7 +72,7 @@ export class MetroAPI {
 		return start <= minutes && minutes <= end;
 	}
 
-	private async fetchRawNetworkData(): Promise<RawNetworkInfo> {
+	private async fetchRawNetworkData(): Promise<RawNWInfo> {
 		const { data } = await axios.get('https://www.metro.cl/api/estadoRedDetalle.php');
 		return data;
 	}
