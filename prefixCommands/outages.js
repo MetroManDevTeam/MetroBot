@@ -159,10 +159,10 @@ module.exports = {
         // Group by line (assuming station codes start with line prefix like "LEN" for L1)
         const groupedByLine = outages.reduce((acc, outage) => {
             const linePrefix = outage.station.substring(0, 1) === 'L' ? 
-                outage.station.substring(0, 3) : 
-                `L${outage.station.substring(1, 2)}`;
+                outage.station : 
+                `${outage.station}`;
                 
-            const lineKey = `Línea ${linePrefix.replace('L', '')}`;
+            const lineKey = `Estación ${linePrefix}`;
             
             if (!acc[lineKey]) acc[lineKey] = [];
             acc[lineKey].push(outage);
