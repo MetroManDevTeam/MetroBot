@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RawNetworkInfo, NetworkInfo, LineId, RawStationInfo, StationInfo } from './types';
+import { RawNetworkInfo, NetworkInfo, LineId } from './types';
 
 /**
  * Clase principal para interactuar con las APIs del Metro de Santiago
@@ -10,7 +10,7 @@ export class MetroAPI {
 	 * @async
 	 */
 	public async getNetworkInfo() {
-		const rawData: RawNetworkInfo = await this.fetchRawNetworkData();
+		const rawData = await this.fetchRawNetworkData();
 		const result = {} as NetworkInfo;
 
 		for (const [line, lineInfo] of Object.entries(rawData)) {
@@ -23,7 +23,13 @@ export class MetroAPI {
 					primary: lineInfo.mensaje_app,
 					secondary: lineInfo.mensaje || null
 				},
-				stations: this.normalizeRawStations(lineInfo.estaciones)
+				stations: lineInfo.estaciones.map((station) => ({
+					code: station.codigo,
+					statusCode: this.isOperating() ? station.estado : '0',
+					name: station.nombre,
+					transfer: station.combinacion || null,
+					messages: { primary: station.descripcion, secondary: station.descripcion_app, tertiary: station.mensaje || null }
+				}))
 			};
 		}
 
@@ -66,18 +72,8 @@ export class MetroAPI {
 		return start <= minutes && minutes <= end;
 	}
 
-	private async fetchRawNetworkData() {
+	private async fetchRawNetworkData(): Promise<RawNetworkInfo> {
 		const { data } = await axios.get('https://www.metro.cl/api/estadoRedDetalle.php');
 		return data;
-	}
-
-	private normalizeRawStations(stations: RawStationInfo[]): StationInfo[] {
-		return stations.map((station) => ({
-			code: station.codigo,
-			statusCode: this.isOperating() ? station.estado : '0',
-			name: station.nombre,
-			transfer: station.combinacion || null,
-			messages: { primary: station.descripcion, secondary: station.descripcion_app, tertiary: station.mensaje || null }
-		}));
 	}
 }

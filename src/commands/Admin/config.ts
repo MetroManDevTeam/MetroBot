@@ -1,7 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType, Message } from 'discord.js';
-import { SimpleEmbed } from '#templates/SimpleEmbed';
+import { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType, EmbedBuilder, Message } from 'discord.js';
 
 @ApplyOptions<Subcommand.Options>({
 	description: 'Comandos de configuracion para MetroBot',
@@ -24,13 +23,17 @@ export class UserCommand extends Subcommand {
 		const channelSelectionRow = new ActionRowBuilder<ChannelSelectMenuBuilder>() //
 			.addComponents(
 				new ChannelSelectMenuBuilder()
-					.setCustomId('metro-updates:channel-select') // interaction-handlers/metro-updates/channel-select.ts
+					.setCustomId('network-status:channel-select') // interaction-handlers/network-status/channel-select.ts
 					.setPlaceholder('Selecciona un canal de la lista')
 					.addChannelTypes(ChannelType.GuildText)
 			);
 
 		message.channel.send({
-			embeds: [new SimpleEmbed('Establecer el canal de actualizaciones de estado', '⚙️ Canal de Actualizaciones (Metro)')],
+			embeds: [
+				new EmbedBuilder() //
+					.setTitle('⚙️ Canal de Actualizaciones (Metro)')
+					.setDescription('Configura un canal de actualizaciones de red')
+			],
 			components: [channelSelectionRow]
 		});
 	}

@@ -7,10 +7,10 @@ import { EmbedBuilder } from 'discord.js';
 /**
  * Crea un embed de estado para la linea deseada
  */
-export async function getMetroLineStatusEmbed(line: LineInfo) {
-	const stationNames = line.stations.map((station) => {
+export async function getStatusEmbed(lineInfo: LineInfo) {
+	const stationNames = lineInfo.stations.map((station) => {
 		// Agregar icono de estado al nombre de la estación y reemplazar el código de linea si está presente por su respectivo icono
-		let name = `${stationStatusMappings[station.statusCode]} ${station.name.replace(line.id.toUpperCase(), lineIcons[line.id])}`;
+		let name = `${stationStatusMappings[station.statusCode]} ${station.name.replace(lineInfo.id.toUpperCase(), lineIcons[lineInfo.id])}`;
 
 		// Si la estación tiene una combinación agregarla al nombre ej: L1 + ↔️ L2
 		if (station.transfer) {
@@ -22,9 +22,11 @@ export async function getMetroLineStatusEmbed(line: LineInfo) {
 	});
 
 	const embed = new EmbedBuilder()
-		.setTitle(`${lineIcons[line.id]} ${lineNames[line.id]}`)
-		.setColor(lineColors[line.id])
-		.setDescription(getMultiLineString(`📡 **Estado:**: ${lineStatusMappings[line.statusCode]}`, ` 📝 **Detalles:** ${line.messages.primary}`))
+		.setTitle(`${lineIcons[lineInfo.id]} ${lineNames[lineInfo.id]}`)
+		.setColor(lineColors[lineInfo.id])
+		.setDescription(
+			getMultiLineString(`📡 **Estado:**: ${lineStatusMappings[lineInfo.statusCode]}`, ` 📝 **Detalles:** ${lineInfo.messages.primary}`)
+		)
 		.setTimestamp();
 
 	const chunks = chunk(stationNames);

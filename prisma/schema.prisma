@@ -8,6 +8,33 @@ generator client {
   output   = "../generated"
 }
 
+model GuildConfig {
+  guildId                     String @id
+  metroNetworkStatusChannelId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lineStatusMessages LineStatusMessage[]
+
+  @@map("guild_configs")
+}
+
+model LineStatusMessage {
+  guildId   String
+  channelId String
+  messageId String @id
+  lineId    LineId
+  infoHash  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guildConfig GuildConfig @relation(fields: [guildId], references: [guildId])
+
+  @@map("line_status_messages")
+}
+
 enum LineId {
   l1
   l2
@@ -16,39 +43,4 @@ enum LineId {
   l4a
   l5
   l6
-}
-
-enum ExpressRoute {
-  common
-  green
-  red
-}
-
-model GuildConfig {
-  guildId               String               @id @map("guild_id")
-  metroUpdatesChannelId String?              @map("metro_updates_channel_id")
-  metroStatusMessages   MetroStatusMessage[]
-
-  @@map("guild_configs")
-}
-
-model MetroStatusMessage {
-  messageId   String      @id @map("message_id")
-  guildId     String      @map("guild_id")
-  channelId   String      @map("channel_id")
-  line        LineId      @map("line")
-  overrides   Json?
-  infoHash    String      @map("info_hash")
-  guildConfig GuildConfig @relation(fields: [guildId], references: [guildId])
-
-  @@map("metro_status_messages")
-}
-
-model MetroStationDetails {
-  stationId String        @id @map("station_id")
-  line      LineId
-  name      String
-  route     ExpressRoute?
-
-  @@map("metro_station_details")
 }

@@ -1,0 +1,88 @@
+import { clearStatusMessages } from '#metro/helpers/clearStatusMessages';
+import { getStatusEmbed } from '#metro/helpers/getStatusEmbed';
+import { sha256hash } from '#utils/string/sha256hash';
+import { ApplyOptions } from '@sapphire/decorators';
+import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
+import { ButtonInteraction, EmbedBuilder } from 'discord.js';
+
+@ApplyOptions<InteractionHandler.Options>({
+	interactionHandlerType: InteractionHandlerTypes.Button
+})
+export class ButtonHandler extends InteractionHandler {
+	public override async parse(interaction: ButtonInteraction<'cached'>) {
+		if (interaction.customId.startsWith(`network-status:${this.name}`)) {
+			const [_, __, selectedChannelId] = interaction.customId.split(':');
+
+			return this.some(selectedChannelId);
+		}
+
+		return this.none();
+	}
+
+	public async run(interaction: ButtonInteraction<'cached'>, selectedChannelId: string) {
+		const statusChannel = interaction.guild.channels.cache.get(selectedChannelId);
+
+		if (!statusChannel) {
+			interaction.update({
+				embeds: [
+					new EmbedBuilder() //
+						.setTitle('🛑 Error')
+						.setColor('Red')
+						.setDescription(`No se pudo encontrar el canal con la id ${selectedChannelId}`)
+				],
+				components: []
+			});
+			return;
+		}
+
+		if (!statusChannel.isSendable()) {
+			interaction.update({
+				embeds: [
+					new EmbedBuilder() //
+						.setTitle('🛑 Error')
+						.setColor('Red')
+						.setDescription(`No puedo enviar mensajes al canal ${selectedChannelId}`)
+				]
+			});
+			return;
+		}
+
+		// Hacer deferUpdate en caso de que la acción tome más tiempo de lo normal
+		await interaction.deferUpdate();
+
+		// Borrar mensajes de estado previos
+		await clearStatusMessages(interaction.guildId);
+
+		// Objeto con la información sobre cada linea de la red
+		const statusInfo = await this.container.metro.getNetworkInfo();
+
+		// Recolectar todas las promesas en un array
+		const promises = Object.values(statusInfo).map(async (lineInfo) => {
+			const statusEmbed = await getStatusEmbed(lineInfo);
+			const statusMessage = await statusChannel.send({ embeds: [statusEmbed] });
+
+			return this.container.prisma.lineStatusMessage.create({
+				data: {
+					guildId: interaction.guildId,
+					channelId: selectedChannelId,
+					lineId: lineInfo.id,
+					messageId: statusMessage.id,
+					infoHash: sha256hash(JSON.stringify(lineInfo))
+				}
+			});
+		});
+
+		// Resolver todas las promesas
+		await Promise.all(promises);
+
+		interaction.editReply({
+			embeds: [
+				new EmbedBuilder() //
+					.setTitle('✅ Configuración guardada')
+					.setColor('Green')
+					.setDescription(`Se estableció <#${selectedChannelId}> como canal de estado`)
+			],
+			components: []
+		});
+	}
+}

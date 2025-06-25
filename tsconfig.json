@@ -8,8 +8,7 @@
 		"paths": {
 			"#lib/*": ["lib/*"],
 			"#utils/*": ["utils/*"],
-			"#metro/*": ["features/metro/*"],
-			"#templates/*": ["templates/*"]
+			"#metro/*": ["features/metro/*"]
 		},
 		"skipLibCheck": true
 	},
