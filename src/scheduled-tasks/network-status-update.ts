@@ -80,3 +80,9 @@ export class UserTask extends ScheduledTask {
 		}
 	}
 }
+
+declare module '@sapphire/plugin-scheduled-tasks' {
+	interface ScheduledTasks {
+		'network-status-update': never;
+	}
+}
