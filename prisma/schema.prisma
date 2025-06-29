@@ -9,33 +9,45 @@ generator client {
 }
 
 model GuildConfig {
-  guildId                     String @id
-  metroNetworkStatusChannelId String
+  guildId                 String @id @map("guild_id")
+  metroNWUpdatesChannelId String @map("metro_nw_updates_channel_id")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  lineStatusMessages LineStatusMessage[]
+  lineStatusMessages MetroLineStatusMessage[]
 
   @@map("guild_configs")
 }
 
-model LineStatusMessage {
-  guildId   String
-  channelId String
-  messageId String @id
-  lineId    LineId
-  infoHash  String
+model MetroLineStatusMessage {
+  guildId   String    @map("guild_id")
+  channelId String    @map("channel_id")
+  messageId String    @id @map("message_id")
+  line      MetroLine
+  infoHash  String    @map("info_hash")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   guildConfig GuildConfig @relation(fields: [guildId], references: [guildId])
 
   @@map("line_status_messages")
 }
 
-enum LineId {
+model MetroStationDetails {
+  code         String        @id
+  line         MetroLine
+  name         String
+  expressRoute ExpressRoute?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("metro_stations")
+}
+
+enum MetroLine {
   l1
   l2
   l3
@@ -43,16 +55,6 @@ enum LineId {
   l4a
   l5
   l6
-}
-
-model StationDetails {
-  stationId    String       @id
-  lineId       LineId
-  stationName  String
-  expressRoute ExpressRoute
-  features     Json?
-
-  @@map("station_details")
 }
 
 enum ExpressRoute {
