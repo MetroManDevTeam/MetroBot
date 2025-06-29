@@ -1,5 +1,5 @@
-import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
+import { ApplyOptions } from '@sapphire/decorators';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, magenta, magentaBright, white, yellow } from 'colorette';
 
@@ -9,7 +9,7 @@ const dev = process.env.NODE_ENV !== 'production';
 export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
-	public override run() {
+	public override async run() {
 		this.container.logger.info(`Cliente listo; Se inició sesión como ${this.container.client.user?.tag} (${this.container.client.id})`);
 		this.printBanner();
 		this.printStoreDebugInformation();

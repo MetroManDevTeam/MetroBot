@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {
-	LineId,
+	MetroLine,
 	RawMetroNetworkStatus,
 	RawStationDetails,
 	MetroNetworkStatus,
@@ -48,7 +48,7 @@ export class MetroAPI {
 		'Máquinas expendoras': 'VENDING_MACHINES'
 	};
 
-	private readonly operationalHours: Record<number, { start: number; end: number }> = {
+	private readonly metroSchedule: Record<number, { start: number; end: number }> = {
 		0: { start: 7 * 60 + 30, end: 23 * 60 }, // Domingo
 		6: { start: 6 * 60 + 30, end: 23 * 60 }, // Sábado
 		1: { start: 6 * 60, end: 23 * 60 },
@@ -60,23 +60,21 @@ export class MetroAPI {
 
 	public async getMetroNetworkStatus() {
 		const raw = await this.fetchRawMetroNetworkStatus();
-		const result = {} as MetroNetworkStatus;
+		const result: Record<string, MetroNetworkStatus[keyof MetroNetworkStatus]> = {};
 
-		for (const [line, info] of Object.entries(raw)) {
-			const lineId = line as LineId;
-
-			result[lineId] = {
-				lineId,
-				statusCode: this.isMetroOperating() ? info.estado : '0',
+		for (const [line, data] of Object.entries(raw)) {
+			result[line] = {
+				line: line as MetroLine,
+				status: this.isMetroOperating() ? data.estado : '0',
 				messages: {
-					primary: info.mensaje_app,
-					secondary: info.mensaje || null
+					primary: data.mensaje_app,
+					secondary: data.mensaje || null
 				},
-				stations: info.estaciones.map((station) => ({
+				stations: data.estaciones.map((station) => ({
 					code: station.codigo,
-					statusCode: this.isMetroOperating() ? station.estado : '0',
+					status: this.isMetroOperating() ? station.estado : '0',
 					name: station.nombre,
-					transferTo: (station.combinacion.toLowerCase() as LineId) || null,
+					transfer: (station.combinacion.toLowerCase() as MetroLine) || null,
 					messages: {
 						primary: station.descripcion,
 						secondary: station.descripcion_app,
@@ -102,11 +100,11 @@ export class MetroAPI {
 			: null;
 
 		return {
-			stationCode: raw.codigo,
+			code: raw.codigo,
 			name: raw.nombre,
-			lineId: raw.linea as LineId,
-			statusCode: raw.estado,
-			transferTo: (raw.combinacion.toLowerCase() as LineId) || null,
+			line: raw.linea as MetroLine,
+			status: raw.estado,
+			transfer: (raw.combinacion.toLowerCase() as MetroLine) || null,
 			messages: {
 				primary: raw.descripcion,
 				secondary: raw.descripcion_app,
@@ -127,9 +125,10 @@ export class MetroAPI {
 
 	public isMetroOperating(): boolean {
 		const now = new Date();
-		const minutes = now.getHours() * 60 + now.getMinutes();
-		const hours = this.operationalHours[now.getDay()];
-		return minutes >= hours.start && minutes <= hours.end;
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
+		const schedule = this.metroSchedule[now.getDay()];
+
+		return currentMinutes >= schedule.start && currentMinutes <= schedule.end;
 	}
 
 	// Helpers privados

@@ -1,9 +1,9 @@
-import { clearStatusMessages } from '#metro/helpers/clearStatusMessages';
-import { getStatusEmbed } from '#metro/helpers/getStatusEmbed';
 import { sha256hash } from '#utils/string/sha256hash';
+import { getStatusEmbed } from '#metro/helpers/getStatusEmbed';
+import { clearStatusMessages } from '#metro/helpers/clearStatusMessages';
 import { ApplyOptions } from '@sapphire/decorators';
-import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import { ButtonInteraction, EmbedBuilder } from 'discord.js';
+import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 
 @ApplyOptions<InteractionHandler.Options>({
 	interactionHandlerType: InteractionHandlerTypes.Button
@@ -61,13 +61,13 @@ export class ButtonHandler extends InteractionHandler {
 			const statusEmbed = await getStatusEmbed(lineInfo);
 			const statusMessage = await statusChannel.send({ embeds: [statusEmbed] });
 
-			return this.container.prisma.lineStatusMessage.create({
+			return this.container.prisma.metroLineStatusMessage.create({
 				data: {
 					guildId: interaction.guildId,
 					channelId: selectedChannelId,
-					lineId: lineInfo.lineId,
+					line: lineInfo.line,
 					messageId: statusMessage.id,
-					infoHash: sha256hash(JSON.stringify(lineInfo))
+					infoHash: sha256hash(JSON.stringify(lineInfo)) // Hash usado para detectar cambios en el estado de la linea (ver scheduled-tasks/network-status-update.ts)
 				}
 			});
 		});

@@ -1,5 +1,5 @@
-import { Listener } from '@sapphire/framework';
 import { gray } from 'colorette';
+import { Listener } from '@sapphire/framework';
 
 const dev = process.env.NODE_ENV !== 'production';
 

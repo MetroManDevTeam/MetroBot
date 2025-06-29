@@ -1,4 +1,4 @@
-export type LineId = 'l1' | 'l2' | 'l3' | 'l4' | 'l4a' | 'l5' | 'l6';
+export type MetroLine = 'l1' | 'l2' | 'l3' | 'l4' | 'l4a' | 'l5' | 'l6';
 
 export interface RawScheduleInterval {
 	value: string; // e.g. "06:00 - 23:00"
@@ -65,13 +65,13 @@ export interface RawLineStatus {
 	estaciones: RawStationStatus[];
 }
 
-export type RawMetroNetworkStatus = Record<LineId, RawLineStatus>;
+export type RawMetroNetworkStatus = Record<MetroLine, RawLineStatus>;
 
 export interface StationStatus {
 	code: string;
-	statusCode: '0' | '1' | '2' | '3' | '4' | '5';
+	status: '0' | '1' | '2' | '3' | '4' | '5';
 	name: string;
-	transferTo: LineId | null;
+	transfer: MetroLine | null;
 	messages: {
 		primary: string;
 		secondary: string;
@@ -80,8 +80,8 @@ export interface StationStatus {
 }
 
 export interface LineStatus {
-	lineId: LineId;
-	statusCode: '0' | '1' | '2' | '3' | '4' | '5';
+	line: MetroLine;
+	status: '0' | '1' | '2' | '3' | '4' | '5';
 	messages: {
 		primary: string;
 		secondary: string | null;
@@ -89,7 +89,7 @@ export interface LineStatus {
 	stations: StationStatus[];
 }
 
-export type MetroNetworkStatus = Record<LineId, LineStatus>;
+export type MetroNetworkStatus = Record<MetroLine, LineStatus>;
 
 export interface RawExpressRoute {
 	horarioMañana: string;
@@ -119,18 +119,20 @@ export interface RawStationDetails {
 	ruta_expresa?: 'verde' | 'Verde' | 'roja' | 'común'; // casing inconsistency in API
 }
 
+export type ExpressRoute = 'common' | 'red' | 'green';
+
 export interface MetroStationDetails {
-	stationCode: string;
+	code: string;
 	name: string;
-	lineId: LineId;
-	statusCode: string;
-	transferTo: LineId | null;
+	line: MetroLine;
+	status: string;
+	transfer: MetroLine | null;
 	messages: {
 		primary: string;
 		secondary: string;
 		tertiary: string | null;
 	};
-	expressRoute: 'common' | 'red' | 'green' | null;
+	expressRoute: ExpressRoute | null;
 	expressSchedule: ParsedExpressSchedule | null;
 	equipment: {
 		accessibility: AccessibilityEquipment[] | null;

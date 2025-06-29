@@ -1,7 +1,7 @@
-import { getStatusChannelId } from '#metro/helpers/getStatusChannelId';
-import { getStatusEmbed } from '#metro/helpers/getStatusEmbed';
-import { setStatusChannelId } from '#metro/helpers/setStatusChannelId';
 import { sha256hash } from '#utils/string/sha256hash';
+import { getStatusEmbed } from '#metro/helpers/getStatusEmbed';
+import { getStatusChannelId } from '#metro/helpers/getStatusChannelId';
+import { setStatusChannelId } from '#metro/helpers/setStatusChannelId';
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuInteraction, EmbedBuilder } from 'discord.js';
@@ -88,13 +88,13 @@ export class MenuHandler extends InteractionHandler {
 			const statusEmbed = await getStatusEmbed(lineInfo);
 			const statusMessage = await statusChannel.send({ embeds: [statusEmbed] });
 
-			return this.container.prisma.lineStatusMessage.create({
+			return this.container.prisma.metroLineStatusMessage.create({
 				data: {
 					guildId: interaction.guildId,
 					channelId: selectedChannelId,
-					lineId: lineInfo.lineId,
+					line: lineInfo.line,
 					messageId: statusMessage.id,
-					infoHash: sha256hash(JSON.stringify(lineInfo)) // Hash usado para detectar cambios en el estado de la linea (ver scheduled-tasks/network-status/update.ts)
+					infoHash: sha256hash(JSON.stringify(lineInfo)) // Hash usado para detectar cambios en el estado de la linea (ver scheduled-tasks/network-status-update.ts)
 				}
 			});
 		});
