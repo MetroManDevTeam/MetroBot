@@ -11,7 +11,6 @@ import { expressRouteIcons, lineColors, lineIcons, lineNames, lineStatusMappings
 export async function getStatusEmbed(lineInfo: LineStatus) {
 	const stationNames = await Promise.all(
 		lineInfo.stations.map(async (station) => {
-			// Agregar icono de estado al nombre de la estación y reemplazar el código de linea si está presente por su respectivo icono
 			const statusIcon = stationStatusMappings[station.status];
 			const expressRoute = await getExpressRoute(station.code);
 			const expressRouteIcon = expressRoute ? expressRouteIcons[expressRoute] : '';
@@ -25,9 +24,7 @@ export async function getStatusEmbed(lineInfo: LineStatus) {
 	const embed = new EmbedBuilder()
 		.setTitle(`${lineIcons[lineInfo.line]} ${lineNames[lineInfo.line]}`)
 		.setColor(lineColors[lineInfo.line])
-		.setDescription(
-			getMultiLineString(`📡 **Estado:**: ${lineStatusMappings[lineInfo.status]}`, ` 📝 **Detalles:** ${lineInfo.messages.primary}`)
-		)
+		.setDescription(getMultiLineString(`📡 **Estado:** ${lineStatusMappings[lineInfo.status]}`, ` 📝 **Detalles:** ${lineInfo.messages.primary}`))
 		.setTimestamp();
 
 	const chunks = chunk(stationNames);

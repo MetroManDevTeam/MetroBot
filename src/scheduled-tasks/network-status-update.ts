@@ -36,8 +36,6 @@ export class UserTask extends ScheduledTask {
 			const statusInfo = networkInfo[lineStatusMessage.line];
 			const currentInfoHash = sha256hash(JSON.stringify(statusInfo));
 
-			//console.log(statusInfo);
-
 			// Si son iguales, no actualizar el mensaje
 			if (lineStatusMessage.infoHash === currentInfoHash) continue;
 
