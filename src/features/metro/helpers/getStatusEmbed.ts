@@ -1,30 +1,32 @@
-import { LineStatus } from '#metro/api/types';
-import { lineColors, lineIcons, lineNames, lineStatusMappings, stationStatusMappings } from '#metro/metroconfig';
 import { chunk } from '#utils/array/chunk';
 import { getMultiLineString } from '#utils/string/getMultiLineString';
+import { getExpressRoute } from './getExpressRoute';
 import { EmbedBuilder } from 'discord.js';
+import { LineStatus } from '#metro/api/types';
+import { expressRouteIcons, lineColors, lineIcons, lineNames, lineStatusMappings, stationStatusMappings } from '#metro/metroconfig';
 
 /**
  * Crea un embed de estado para la linea deseada
  */
 export async function getStatusEmbed(lineInfo: LineStatus) {
-	const stationNames = lineInfo.stations.map((station) => {
-		// Agregar icono de estado al nombre de la estación y reemplazar el código de linea si está presente por su respectivo icono
-		let name = `${stationStatusMappings[station.statusCode]} ${station.name.replace(lineInfo.lineId.toUpperCase(), lineIcons[lineInfo.lineId])}`;
+	const stationNames = await Promise.all(
+		lineInfo.stations.map(async (station) => {
+			// Agregar icono de estado al nombre de la estación y reemplazar el código de linea si está presente por su respectivo icono
+			const statusIcon = stationStatusMappings[station.status];
+			const expressRoute = await getExpressRoute(station.code);
+			const expressRouteIcon = expressRoute ? expressRouteIcons[expressRoute] : '';
+			const name = station.name.replace(lineInfo.line.toUpperCase(), lineIcons[lineInfo.line]);
+			const transfer = station.transfer ? `↔️${lineIcons[station.transfer]}` : '';
 
-		// Si la estación tiene una combinación agregarla al nombre ej: L1 + ↔️ L2
-		if (station.transferTo) {
-			name = `${name}↔️${lineIcons[station.transferTo]}`;
-		}
-
-		return name;
-	});
+			return `${statusIcon} ${expressRouteIcon} ${name}${transfer}`;
+		})
+	);
 
 	const embed = new EmbedBuilder()
-		.setTitle(`${lineIcons[lineInfo.lineId]} ${lineNames[lineInfo.lineId]}`)
-		.setColor(lineColors[lineInfo.lineId])
+		.setTitle(`${lineIcons[lineInfo.line]} ${lineNames[lineInfo.line]}`)
+		.setColor(lineColors[lineInfo.line])
 		.setDescription(
-			getMultiLineString(`📡 **Estado:**: ${lineStatusMappings[lineInfo.statusCode]}`, ` 📝 **Detalles:** ${lineInfo.messages.primary}`)
+			getMultiLineString(`📡 **Estado:**: ${lineStatusMappings[lineInfo.status]}`, ` 📝 **Detalles:** ${lineInfo.messages.primary}`)
 		)
 		.setTimestamp();
 

@@ -1,7 +1,8 @@
 import { ColorResolvable } from 'discord.js';
-import { LineId } from '#metro/api/types';
+import { MetroLine } from '#metro/api/types';
+import { ExpressRoute } from '../../../generated';
 
-export const lineIcons: Record<LineId, string> = {
+export const lineIcons: Record<MetroLine, string> = {
 	l1: '<:l1:1386445105455566918>',
 	l2: '<:l2:1386445134367035485>',
 	l3: '<:l3:1386445150246670478>',
@@ -11,7 +12,7 @@ export const lineIcons: Record<LineId, string> = {
 	l6: '<:l6:1386445209130242289>'
 };
 
-export const lineNames: Record<LineId, string> = {
+export const lineNames: Record<MetroLine, string> = {
 	l1: 'Línea 1',
 	l2: 'Línea 2',
 	l3: 'Línea 3',
@@ -21,7 +22,7 @@ export const lineNames: Record<LineId, string> = {
 	l6: 'Línea 6'
 };
 
-export const lineColors: Record<LineId, ColorResolvable> = {
+export const lineColors: Record<MetroLine, ColorResolvable> = {
 	l1: '#ea000a',
 	l2: '#ffaf00',
 	l3: '#67210a',
@@ -47,4 +48,10 @@ export const stationStatusMappings = {
 	'3': '', // ???
 	'4': '', // ???
 	'5': '' // ???
+};
+
+export const expressRouteIcons: Record<ExpressRoute, string> = {
+	common: '<:comun:1388704455423295619>',
+	green: '<:verde:1388704493822152888>',
+	red: '<:roja:1388704471462187049>'
 };
