@@ -44,10 +44,10 @@ export const lineStatusMappings = {
 export const stationStatusMappings = {
 	'0': '🌙', // Cierre por horario
 	'1': '<:operativa:1386520320952897536>', // Estación operativa
-	'2': '🟥', // Estación cerrada
-	'3': '', // ???
-	'4': '', // ???
-	'5': '' // ???
+	'2': '<:cerrada:1388939059157537042>', // Estación cerrada
+	'3': '<:parcial:1388938683658408017>', // Parcial (indefinido?)
+	'4': '<:parcial:1388938683658408017>', // Parcial
+	'5': '<:extendida:1388939180683296908>' // Extendida
 };
 
 export const expressRouteIcons: Record<ExpressRoute, string> = {
