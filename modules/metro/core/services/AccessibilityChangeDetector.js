@@ -297,7 +297,7 @@ class AccessibilityChangeDetector {
                 changelistory: []
             };
 
-            console.log(config)
+            //console.log(config)
             
             // Process all changes for this station
             for (const change of stationChanges) {
