@@ -253,6 +253,9 @@ class AccessibilityChangeDetector {
             const metro = await getMetroCore();
             
             for (const change of changes) {
+
+                console.log(change)
+                
                 const equipment = change.current || change.previous;
                 if (!equipment) continue;
 
