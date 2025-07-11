@@ -247,52 +247,61 @@ class AccessibilityChangeDetector {
     }
 
     async processAndStoreChanges(changes) {
-        try {
-            const accessCore = new AccessCore();
-            await accessCore.ensureAccessDetailsDir();
-            const metro = await getMetroCore();
+    try {
+        const accessCore = new AccessCore();
+        await accessCore.ensureAccessDetailsDir();
+        const metro = await getMetroCore();
+        
+        // First group changes by station
+        const changesByStation = {};
+        
+        for (const change of changes) {
+            const equipment = change.current || change.previous;
+            if (!equipment) continue;
+
+            const fullEquipmentId = change.equipmentId;
+            const stationCode = fullEquipmentId.split('-')[0];
             
-            for (const change of changes) {
+            if (!changesByStation[stationCode]) {
+                changesByStation[stationCode] = [];
+            }
+            changesByStation[stationCode].push(change);
+        }
+        
+        // Process each station's changes together
+        for (const [stationCode, stationChanges] of Object.entries(changesByStation)) {
+            // Get station data from MetroCore
+            const stationData = Object.values(metro._staticData.stations).find(
+                s => s.code === stationCode
+            );
+            
+            if (!stationData) {
+                this.logger.warn(`Station not found in MetroCore data: ${stationCode}`);
+                continue;
+            }
 
-                console.log(change)
-                
+            // Fix line format
+            const lineNumber = stationData.line;
+            let line = `${lineNumber}`.replace(/ll+/g, 'l');
+            let stationKey = `${stationData.displayName}`;
+            
+            // Load or create initial config for this station
+            const config = await accessCore.getAccessConfig(stationKey) || {
+                station: stationData.displayName.toLowerCase(),
+                line: line,
+                accesses: [],
+                elevators: [],
+                escalators: [],
+                changeHistory: [],
+                lastUpdated: new Date().toISOString(),
+                changelistory: []
+            };
+            
+            // Process all changes for this station
+            for (const change of stationChanges) {
                 const equipment = change.current || change.previous;
-                if (!equipment) continue;
-
-                // Use the full raw ID (e.g., "LEN-05eb02")
                 const fullEquipmentId = change.equipmentId;
-                const equipmentId = fullEquipmentId.split('-')[1]; // Use part after dash
-                
-                // Extract station code (first part before hyphen)
-                const stationCode = fullEquipmentId.split('-')[0];
                 const equipCode = fullEquipmentId.split('-')[1];
-                
-                
-                // Get complete station data from MetroCore
-                const stationData = Object.values(metro._staticData.stations).find(
-                    s => s.code === stationCode
-                );
-                
-                if (!stationData) {
-                    this.logger.warn(`Station not found in MetroCore data: ${stationCode}`);
-                    continue;
-                }
-
-                // Fix line format (ensure it's "l1", not "ll1")
-                const lineNumber = stationData.line;
-                let line = `${lineNumber}`.replace(/ll+/g, 'l');
-                let stationKey = `${stationData.displayName}`;
-                
-                const config = await accessCore.getAccessConfig(stationKey) || {
-                    station: stationData.displayName.toLowerCase(),
-                    line: line,
-                    accesses: [],
-                    elevators: [],
-                    escalators: [],
-                    changeHistory: [],
-                    lastUpdated: new Date().toISOString(),
-                    changelistory: []
-                };
                 
                 // Determine equipment type
                 const isElevator = equipment.tipo.toLowerCase().includes('ascensor');
@@ -304,14 +313,11 @@ class AccessibilityChangeDetector {
                 let from = 'Unknown';
                 let to = 'Unknown';
                 
-                // Try to extract from description
                 const pathMatch = equipment.texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|a|hasta)\s*(.+)/i);
                 if (pathMatch) {
                     from = pathMatch[1].trim();
                     to = pathMatch[2].trim();
-                } 
-                // Fallback to station areas if path not found
-                else if (stationData.areas) {
+                } else if (stationData.areas) {
                     from = stationData.areas[0] || 'Entrada Principal';
                     to = stationData.areas[1] || 'Andén';
                 }
@@ -319,7 +325,7 @@ class AccessibilityChangeDetector {
                 const fullPath = equipment.texto;
                 
                 const equipmentData = {
-                    id: equipCode, // Using full ID for consistency
+                    id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
                     notes: equipment.texto || '',
@@ -331,7 +337,7 @@ class AccessibilityChangeDetector {
                 
                 // Add to appropriate array
                 const targetArray = isElevator ? config.elevators : config.escalators;
-                const existingIndex = targetArray.findIndex(e => e.id === fullEquipmentId);
+                const existingIndex = targetArray.findIndex(e => e.id === equipCode);
                 
                 if (existingIndex >= 0) {
                     targetArray[existingIndex] = equipmentData;
@@ -347,34 +353,33 @@ class AccessibilityChangeDetector {
                     details: this.getChangeDetails(change, fullEquipmentId)
                 };
                 
-                // Add to both changeHistory arrays
                 config.changeHistory.unshift(changeEntry);
                 config.changelistory.unshift(changeEntry);
-                
-                // Trim history
-                if (config.changeHistory.length > 50) {
-                    config.changeHistory = config.changeHistory.slice(0, 50);
-                }
-                if (config.changelistory.length > 50) {
-                    config.changelistory = config.changelistory.slice(0, 50);
-                }
-                
-                // Update lastUpdated timestamp
-                config.lastUpdated = new Date().toISOString();
-                
-                // Save config
-                const existingLines = ['l1', 'l2', 'l3', 'l4', 'l4a', 'l5', 'l6'];
- line = existingLines.some(l => stationKey.includes(l)) ? '' : ` ${line}`;
-
-await accessCore.saveAccessConfig(`${stationKey}${line}`, config);
             }
             
-            this.logger.info(`Processed ${changes.length} changes`);
-        } catch (error) {
-            this.logger.error(`Error processing changes: ${error.message}`);
-            throw error;
+            // Trim history
+            if (config.changeHistory.length > 50) {
+                config.changeHistory = config.changeHistory.slice(0, 50);
+            }
+            if (config.changelistory.length > 50) {
+                config.changelistory = config.changelistory.slice(0, 50);
+            }
+            
+            // Update lastUpdated timestamp
+            config.lastUpdated = new Date().toISOString();
+            
+            // Save config for this station
+            const existingLines = ['l1', 'l2', 'l3', 'l4', 'l4a', 'l5', 'l6'];
+            line = existingLines.some(l => stationKey.includes(l)) ? '' : ` ${line}`;
+            await accessCore.saveAccessConfig(`${stationKey}${line}`, config);
         }
+        
+        this.logger.info(`Processed changes for ${Object.keys(changesByStation).length} stations`);
+    } catch (error) {
+        this.logger.error(`Error processing changes: ${error.message}`);
+        throw error;
     }
+}
 
     getActionDescription(change, isElevator, isEscalator) {
         const equipmentType = isElevator ? 'ascensor' : 'escalera';
