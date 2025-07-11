@@ -373,16 +373,18 @@ if (from === 'Unknown' && to === 'Unknown') {
                 
                 const fullPath = texto;
                 console.log(config);
+
+                const target = isElevator ? config.elevators : config.escalators;
                 
                 const equipmentData = {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
-                    notes: config.notes,
-                    from: config.from,
-                    to: config.to,
-                    fullPath: config.fullPath,
-                    segments: config.segments
+                    notes: target[equipCode].notes,
+                    from: target[equipCode].from,
+                    to: target[equipCode].to,
+                    fullPath: target[equipCode].fullPath,
+                    segments: target[equipCode].segments
                 };
                 
                 // Add to appropriate array
