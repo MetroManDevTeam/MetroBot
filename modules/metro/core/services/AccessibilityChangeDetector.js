@@ -376,23 +376,25 @@ if (from === 'Unknown' && to === 'Unknown') {
 
                 const target = isElevator ? config.elevators : config.escalators;
 
-                let i = 0
-                if (i < 5) {
-                    console.log(config)
+// Debugging code (logs config if i < 5)
+let i = 0;
+if (i < 5) {
+    console.log(config);
+}
+i++;
 
-                }
-                
-                i++
+// Find equipment details by equipmentId
+const equipmentDetails = target.find(item => item.id === equipCode); 
                 
                 const equipmentData = {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
-                    notes: target[equipCode]?.notes || equipment.notes,
-                    from: target[equipCode]?.from || from,
-                    to: target[equipCode]?.to || to,
-                    fullPath: target[equipCode]?.fullPath || fullPath,
-                    segments: target[equipCode]?.segments || [from, to]
+                    notes: equipmentDetails?.notes || equipment.notes,
+                    from: equipmentDetails?.from || from,
+                    to: equipmentDetails?.to || to,
+                    fullPath: equipmentDetails?.fullPath || fullPath,
+                    segments: equipmentDetails?.segments || [from, to]
                 };
                 
                 // Add to appropriate array
