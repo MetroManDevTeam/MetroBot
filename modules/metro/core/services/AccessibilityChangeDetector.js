@@ -377,11 +377,11 @@ if (from === 'Unknown' && to === 'Unknown') {
                 const target = isElevator ? config.elevators : config.escalators;
 
 // Debugging code (logs config if i < 5)
-let i = 0;
+/*let i = 0;
 if (i < 5) {
     console.log(config);
 }
-i++;
+i++;*/
 
 // Find equipment details by equipmentId
 const equipmentDetails = target.find(item => item.id === equipCode); 
