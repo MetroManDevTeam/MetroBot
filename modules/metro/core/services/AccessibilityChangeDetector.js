@@ -377,11 +377,11 @@ if (from === 'Unknown' && to === 'Unknown') {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
-                    notes: texto,
-                    from: from,
-                    to: to,
-                    fullPath: fullPath,
-                    segments: [from, to]
+                    notes: config.notes,
+                    from: config.from,
+                    to: config.to,
+                    fullPath: config.fullPath,
+                    segments: config.segments
                 };
                 
                 // Add to appropriate array
