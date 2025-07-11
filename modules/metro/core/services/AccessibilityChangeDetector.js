@@ -295,7 +295,10 @@ class AccessibilityChangeDetector {
                 changeHistory: [],
                 lastUpdated: new Date().toISOString(),
                 changelistory: []
-            };
+            }
+
+            config.elevators = [];
+            config.escalators = [];
 
             //console.log(config)
             
