@@ -237,7 +237,7 @@ class AccessibilityResultsManager extends BaseButton {
         if (filteredElevators.length > 0) {
             lines.push('***Ascensores:***');
             filteredElevators.forEach(elevator => {
-                let line = `- ${elevator.id}: Desde ${elevator.from} hacia ${elevator.to}`;
+                let line = " -" + elevator.fullPath;
                 if (elevator.status) line += ` [${this._formatStatus(elevator.status)}]`;
                 lines.push(line);
             });
@@ -256,7 +256,7 @@ class AccessibilityResultsManager extends BaseButton {
         if (filteredEscalators.length > 0) {
             lines.push('***Escaleras Mecánicas:***');
             filteredEscalators.forEach(escalator => {
-                let line = `- ${escalator.id}: Desde ${escalator.from} hacia ${escalator.to}`;
+                let line = `- ${escalator.fullPath}`;
                 if (escalator.status) line += ` [${this._formatStatus(escalator.status)}]`;
                 lines.push(line);
             });
