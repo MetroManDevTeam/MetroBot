@@ -360,7 +360,7 @@ class AccessibilityChangeDetector {
                 config.lastUpdated = new Date().toISOString();
                 
                 // Save config
-                await accessCore.saveAccessConfig(stationKey, config);
+                await accessCore.saveAccessConfig(`${stationKey} ${line.replace('l','')}`, config);
             }
             
             this.logger.info(`Processed ${changes.length} changes`);
