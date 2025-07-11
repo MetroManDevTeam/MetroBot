@@ -372,7 +372,7 @@ if (from === 'Unknown' && to === 'Unknown') {
 }
                 
                 const fullPath = texto;
-                console.log(config);
+                //console.log(config);
 
                 const target = isElevator ? config.elevators : config.escalators;
                 
