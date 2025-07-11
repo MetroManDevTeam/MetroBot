@@ -309,26 +309,63 @@ class AccessibilityChangeDetector {
                 
                 if (!isElevator && !isEscalator) continue;
                 
-                // Enhanced path extraction with fallbacks
+                // Enhanced path extraction with multiple fallback patterns
                 let from = 'Unknown';
                 let to = 'Unknown';
+                const texto = equipment.texto || '';
                 
-                const pathMatch = equipment.texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
-                if (pathMatch) {
+                // Pattern 1: "desde X hacia Y"
+                let pathMatch = texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
+                
+                // Pattern 2: "hacia Y" (only to direction specified)
+                if (!pathMatch) {
+                    pathMatch = texto.match(/(?:hacia|to|hasta)\s*(.+)/i);
+                    if (pathMatch) {
+                        to = pathMatch[1].trim();
+                        from = 'Entrada Principal'; // Default from value
+                    }
+                } else {
                     from = pathMatch[1].trim();
                     to = pathMatch[2].trim();
-                } else if (stationData.areas) {
-                    from = stationData.areas[0] || 'Entrada Principal';
-                    to = stationData.areas[1] || 'Andén';
                 }
                 
-                const fullPath = equipment.texto;
+                // Pattern 3: "conecta X con Y"
+                if (!pathMatch) {
+                    pathMatch = texto.match(/(?:conecta|connect)\s*(.+?)\s*(?:con|with)\s*(.+)/i);
+                    if (pathMatch) {
+                        from = pathMatch[1].trim();
+                        to = pathMatch[2].trim();
+                    }
+                }
+                
+                // Pattern 4: "entre X y Y"
+                if (!pathMatch) {
+                    pathMatch = texto.match(/(?:entre|between)\s*(.+?)\s*(?:y|and)\s*(.+)/i);
+                    if (pathMatch) {
+                        from = pathMatch[1].trim();
+                        to = pathMatch[2].trim();
+                    }
+                }
+                
+                // Final fallback if no patterns matched
+                if (from === 'Unknown' && to === 'Unknown') {
+                    if (texto.trim().length > 0) {
+                        // If there's text but no pattern matched, use the whole text as description
+                        to = texto;
+                        from = 'Varios puntos';
+                    } else if (stationData.areas) {
+                        from = stationData.areas[0] || 'Entrada Principal';
+                        to = stationData.areas[1] || 'Andén';
+                    }
+                }
+                
+                const fullPath = texto;
                 
                 const equipmentData = {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
-                    notes: equipment.texto || '',
+                    notes: texto,
                     from: from,
                     to: to,
                     fullPath: fullPath,
@@ -380,6 +417,7 @@ class AccessibilityChangeDetector {
         throw error;
     }
 }
+
 
     getActionDescription(change, isElevator, isEscalator) {
         const equipmentType = isElevator ? 'ascensor' : 'escalera';
