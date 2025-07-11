@@ -1,4 +1,4 @@
-// templates/embeds/stationAccessibilityEmbed.js
+ // templates/embeds/stationAccessibilityEmbed.js
 const { EmbedBuilder } = require('discord.js');
 const BaseEmbed = require('./baseEmbed');
 const styles = require('../../config/metro/styles.json' )
@@ -63,8 +63,8 @@ class StationAccessibilityEmbed extends BaseEmbed {
         if (station.accessDetails?.elevators?.length > 0) {
             const elevatorList = station.accessDetails.elevators.map(elev => 
                 `${this._getElevatorStatusEmoji(elev.status)} **${elev.id}**\n` +
-                `_De ${elev.from} a ${elev.to}_\n` +
-                `${elev.notes ? `📝 ${elev.notes}\n` : ''}` +
+                `_${elev.fullPath}_\n` +
+                //`${elev.notes ? `📝 ${elev.notes}\n` : ''}` +
                 `🔄 Actualizado: ${new Date(elev.lastUpdated).toLocaleDateString()}`
             ).join('\n\n');
 
@@ -88,8 +88,8 @@ class StationAccessibilityEmbed extends BaseEmbed {
         if (station.accessDetails?.escalators?.length > 0) {
             const escalatorList = station.accessDetails.escalators.map(esc => 
                 `${this._getEscalatorStatusEmoji(esc.status)} **${esc.id}**\n` +
-                `_De ${esc.from} a ${esc.to}_\n` +
-                `${esc.notes ? `📝 ${esc.notes}\n` : ''}` +
+                `_${esc.fullPath}_\n` +
+              //  `${esc.notes}\n` : ''}` +
                 `🔄 Actualizado: ${new Date(esc.lastUpdated).toLocaleDateString()}`
             ).join('\n\n');
 
