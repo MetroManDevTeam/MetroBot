@@ -308,56 +308,63 @@ class AccessibilityChangeDetector {
                 const isEscalator = equipment.tipo.toLowerCase().includes('escalera');
                 
                 if (!isElevator && !isEscalator) continue;
-                
+
                 // Enhanced path extraction with multiple fallback patterns
-                let from = 'Unknown';
-                let to = 'Unknown';
-                const texto = equipment.texto || '';
-                
-                // Pattern 1: "desde X hacia Y"
-                let pathMatch = texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
-                
-                // Pattern 2: "hacia Y" (only to direction specified)
-                if (!pathMatch) {
-                    pathMatch = texto.match(/(?:hacia|to|hasta)\s*(.+)/i);
-                    if (pathMatch) {
-                        to = pathMatch[1].trim();
-                        from = 'Entrada Principal'; // Default from value
-                    }
-                } else {
-                    from = pathMatch[1].trim();
-                    to = pathMatch[2].trim();
-                }
-                
-                // Pattern 3: "conecta X con Y"
-                if (!pathMatch) {
-                    pathMatch = texto.match(/(?:conecta|connect)\s*(.+?)\s*(?:con|with)\s*(.+)/i);
-                    if (pathMatch) {
-                        from = pathMatch[1].trim();
-                        to = pathMatch[2].trim();
-                    }
-                }
-                
-                // Pattern 4: "entre X y Y"
-                if (!pathMatch) {
-                    pathMatch = texto.match(/(?:entre|between)\s*(.+?)\s*(?:y|and)\s*(.+)/i);
-                    if (pathMatch) {
-                        from = pathMatch[1].trim();
-                        to = pathMatch[2].trim();
-                    }
-                }
-                
-                // Final fallback if no patterns matched
-                if (from === 'Unknown' && to === 'Unknown') {
-                    if (texto.trim().length > 0) {
-                        // If there's text but no pattern matched, use the whole text as description
-                        to = texto;
-                        from = 'Varios puntos';
-                    } else if (stationData.areas) {
-                        from = stationData.areas[0] || 'Entrada Principal';
-                        to = stationData.areas[1] || 'Andén';
-                    }
-                }
+let from = 'Unknown';
+let to = 'Unknown';
+const texto = equipment.texto || '';
+
+// Pattern 1: "desde X hacia Y"
+let pathMatch = texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
+
+// Pattern 2: "hacia Y" (split text around "hacia")
+if (!pathMatch) {
+    const haciaSplit = texto.split(/(hacia|to|hasta)/i);
+    if (haciaSplit.length >= 3) {
+        // Part before "hacia" is from, part after is to
+        from = haciaSplit[0].trim();
+        to = haciaSplit[2].trim();
+        
+        // Clean up any trailing/leading connectors
+        from = from.replace(/\b(desde|from|con|with|entre|between)\b/gi, '').trim();
+        to = to.replace(/\b(con|with|y|and)\b/gi, '').trim();
+        
+        // If from is empty after split (e.g., "hacia Y"), use default
+        if (!from) {
+            from = stationData.areas?.[0] || 'Entrada Principal';
+        }
+    }
+}
+
+// Pattern 3: "conecta X con Y"
+if (!pathMatch && from === 'Unknown' && to === 'Unknown') {
+    pathMatch = texto.match(/(?:conecta|connect)\s*(.+?)\s*(?:con|with)\s*(.+)/i);
+    if (pathMatch) {
+        from = pathMatch[1].trim();
+        to = pathMatch[2].trim();
+    }
+}
+
+// Pattern 4: "entre X y Y"
+if (!pathMatch && from === 'Unknown' && to === 'Unknown') {
+    pathMatch = texto.match(/(?:entre|between)\s*(.+?)\s*(?:y|and)\s*(.+)/i);
+    if (pathMatch) {
+        from = pathMatch[1].trim();
+        to = pathMatch[2].trim();
+    }
+}
+
+// Final fallback if no patterns matched
+if (from === 'Unknown' && to === 'Unknown') {
+    if (texto.trim().length > 0) {
+        // If there's text but no pattern matched, use the whole text as description
+        to = texto;
+        from = 'Varios puntos';
+    } else if (stationData.areas) {
+        from = stationData.areas[0] || 'Entrada Principal';
+        to = stationData.areas[1] || 'Andén';
+    }
+}
                 
                 const fullPath = texto;
                 
