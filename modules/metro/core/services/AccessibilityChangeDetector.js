@@ -372,6 +372,7 @@ if (from === 'Unknown' && to === 'Unknown') {
 }
                 
                 const fullPath = texto;
+                console.log(config);
                 
                 const equipmentData = {
                     id: equipCode,
