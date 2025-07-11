@@ -1,4 +1,3 @@
-
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -7,6 +6,7 @@ const { getClient } = require('../../../../utils/clientManager');
 const TimeHelpers = require('../../../chronos/timeHelpers');
 const { EmbedBuilder } = require('discord.js');
 const metroConfig = require('../../../../config/metro/metroConfig');
+const AccessCore = require('../modules/metro/accessManagement/accessCore');
 
 const API_URL = process.env.ACCESSARIEL; // Ensure this is set in your environment
 const STATE_FILE = path.join(__dirname, 'lastAccessState.json');
@@ -212,6 +212,9 @@ class AccessibilityChangeDetector {
             if (changes.length > 0) {
                 await this.notifyChanges(changes);
                 
+                // Process and store changes in the access files
+                await this.processAndStoreChanges(changes);
+                
                 // Always update lastStates when changes are detected
                 this.logger.info('Updating lastStates with current data');
                 this.saveLastStates(cleanCurrentStates);
@@ -224,6 +227,152 @@ class AccessibilityChangeDetector {
             this.logger.error(`Error in accessibility check: ${error.message}`);
             return [];
         }
+    }
+
+    async processAndStoreChanges(changes) {
+        try {
+            const accessCore = new AccessCore();
+            await accessCore.ensureAccessDetailsDir();
+            const metro = await getMetroCore();
+            
+            for (const change of changes) {
+                const equipment = change.current || change.previous;
+                if (!equipment) continue;
+
+                // Use the full raw ID (e.g., "LEN-05eb02")
+                const fullEquipmentId = change.equipmentId;
+                
+                // Extract station code (first part before hyphen)
+                const stationCode = fullEquipmentId.split('-')[0];
+                
+                // Get complete station data from MetroCore
+                const stationData = Object.values(metro._staticData.stations).find(
+                    s => s.code === stationCode
+                );
+                
+                if (!stationData) {
+                    this.logger.warn(`Station not found in MetroCore data: ${stationCode}`);
+                    continue;
+                }
+
+                const lineNumber = stationData.line;
+                const stationKey = `${stationData.displayName} L${lineNumber}`; // e.g., "Los Leones L1"
+                
+                const config = await accessCore.getAccessConfig(stationKey) || {
+                    station: stationData.displayName.toLowerCase(),
+                    line: `l${lineNumber}`,
+                    accesses: [],
+                    elevators: [],
+                    escalators: [],
+                    changeHistory: [],
+                    lastUpdated: new Date().toISOString(),
+                    changelistory: []
+                };
+                
+                // Determine equipment type
+                const isElevator = equipment.tipo.toLowerCase().includes('ascensor');
+                const isEscalator = equipment.tipo.toLowerCase().includes('escalera');
+                
+                if (!isElevator && !isEscalator) continue;
+                
+                // Enhanced path extraction with fallbacks
+                let from = 'Unknown';
+                let to = 'Unknown';
+                
+                // Try to extract from description
+                const pathMatch = equipment.texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|a|hasta)\s*(.+)/i);
+                if (pathMatch) {
+                    from = pathMatch[1].trim();
+                    to = pathMatch[2].trim();
+                } 
+                // Fallback to station areas if path not found
+                else if (stationData.areas) {
+                    from = stationData.areas[0] || 'Entrada Principal';
+                    to = stationData.areas[1] || 'Andén';
+                }
+                
+                const fullPath = `${from}→${to}`;
+                
+                const equipmentData = {
+                    id: fullEquipmentId,
+                    status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
+                    lastUpdated: new Date().toISOString(),
+                    notes: equipment.texto || '',
+                    from: from,
+                    to: to,
+                    fullPath: fullPath,
+                    segments: [from, to]
+                };
+                
+                // Add to appropriate array
+                const targetArray = isElevator ? config.elevators : config.escalators;
+                const existingIndex = targetArray.findIndex(e => e.id === fullEquipmentId);
+                
+                if (existingIndex >= 0) {
+                    targetArray[existingIndex] = equipmentData;
+                } else {
+                    targetArray.push(equipmentData);
+                }
+                
+                // Create change history entry
+                const changeEntry = {
+                    timestamp: new Date().toISOString(),
+                    user: 'AccessibilityChangeDetector',
+                    action: this.getActionDescription(change, isElevator, isEscalator),
+                    details: this.getChangeDetails(change, fullEquipmentId)
+                };
+                
+                // Add to both changeHistory arrays
+                config.changeHistory.unshift(changeEntry);
+                config.changelistory.unshift(changeEntry);
+                
+                // Trim history
+                if (config.changeHistory.length > 50) {
+                    config.changeHistory = config.changeHistory.slice(0, 50);
+                }
+                if (config.changelistory.length > 50) {
+                    config.changelistory = config.changelistory.slice(0, 50);
+                }
+                
+                // Update lastUpdated timestamp
+                config.lastUpdated = new Date().toISOString();
+                
+                // Save config
+                await accessCore.saveAccessConfig(stationKey, config);
+            }
+            
+            this.logger.info(`Processed ${changes.length} changes`);
+        } catch (error) {
+            this.logger.error(`Error processing changes: ${error.message}`);
+            throw error;
+        }
+    }
+
+    getActionDescription(change, isElevator, isEscalator) {
+        const equipmentType = isElevator ? 'ascensor' : 'escalera';
+        
+        if (change.type === 'new') {
+            return `Nuevo ${equipmentType} agregado`;
+        } else if (change.type === 'removed') {
+            return `${equipmentType} eliminado`;
+        } else if (change.type === 'state_change') {
+            const newStatus = change.current.estado === 1 ? 'operativa' : 'fuera de servicio';
+            return `Actualizado ${equipmentType} a ${newStatus}`;
+        }
+        return `Actualización de ${equipmentType}`;
+    }
+
+    getChangeDetails(change, equipmentId) {
+        if (change.type === 'new') {
+            return `Nuevo equipo: ${equipmentId} - ${change.current.texto || 'Sin descripción'}`;
+        } else if (change.type === 'removed') {
+            return `Eliminado: ${equipmentId} - ${change.previous.texto || 'Sin descripción'}`;
+        } else if (change.type === 'state_change') {
+            const fromStatus = change.previous.estado === 1 ? 'operativo' : 'fuera de servicio';
+            const toStatus = change.current.estado === 1 ? 'operativo' : 'fuera de servicio';
+            return `Cambio de estado: ${equipmentId} de ${fromStatus} a ${toStatus}`;
+        }
+        return `Actualizado: ${equipmentId}`;
     }
 
     detectChanges(currentStates, comparisonBaseline) {
@@ -313,138 +462,137 @@ class AccessibilityChangeDetector {
     }
 
     formatSummaryEmbeds(changes, metro) {
-    const elevators = [];
-    const escalators = [];
-    
-    // Separate changes by equipment type
-    changes.forEach(change => {
-        const equipment = change.current || change.previous;
-        if (!equipment) return;
+        const elevators = [];
+        const escalators = [];
         
-        const isElevator = equipment.tipo.toLowerCase().includes('ascensor');
-        const isEscalator = equipment.tipo.toLowerCase().includes('escalera');
-        
-        if (isElevator) {
-            elevators.push(change);
-        } else if (isEscalator) {
-            escalators.push(change);
-        }
-    });
-    
-    const embeds = [];
-    const maxFieldLength = 1000; // Discord field limit
-    const maxEmbedLength = 6000; // Discord embed limit
-    
-    // Helper function to create grouped embeds for a specific equipment type
-    const createEquipmentEmbed = (items, title) => {
-        if (items.length === 0) return null;
-        
-        // Group by line
-        const lineGroups = {};
-        
-        items.forEach(change => {
-            const stationCode = change.equipmentId.split('-')[0];
-            const station = Object.values(metro._staticData.stations).find(s => s.code === stationCode);
-            const lineNumber = station?.line || '?';
-            const lineKey = station?.line ? `l${station.line}` : 'unknown';
+        // Separate changes by equipment type
+        changes.forEach(change => {
+            const equipment = change.current || change.previous;
+            if (!equipment) return;
             
-            if (!lineGroups[lineKey]) {
-                lineGroups[lineKey] = {
-                    lineNumber,
-                    lineEmoji: metroConfig.linesEmojis[lineKey] || '',
-                    items: []
-                };
+            const isElevator = equipment.tipo.toLowerCase().includes('ascensor');
+            const isEscalator = equipment.tipo.toLowerCase().includes('escalera');
+            
+            if (isElevator) {
+                elevators.push(change);
+            } else if (isEscalator) {
+                escalators.push(change);
             }
-            lineGroups[lineKey].items.push(change);
         });
         
-        // Create embed with title and timestamp
-        let embed = new EmbedBuilder()
-            .setColor(0x0052A5)
-            .setTitle(title)
-            .setDescription(`Última Actualización: ${this.timeHelpers.formatDateTime('DD/MM/YYYY HH:mm')}`)
-            .setTimestamp();
+        const embeds = [];
+        const maxFieldLength = 1000; // Discord field limit
+        const maxEmbedLength = 6000; // Discord embed limit
         
-        // Process each line group
-        Object.values(lineGroups).forEach(group => {
-            const nowOperational = [];
-            const nowNonOperational = [];
+        // Helper function to create grouped embeds for a specific equipment type
+        const createEquipmentEmbed = (items, title) => {
+            if (items.length === 0) return null;
             
-            // Separate operational and non-operational changes
-            group.items.forEach(change => {
+            // Group by line
+            const lineGroups = {};
+            
+            items.forEach(change => {
                 const stationCode = change.equipmentId.split('-')[0];
                 const station = Object.values(metro._staticData.stations).find(s => s.code === stationCode);
-                const stationName = station?.displayName || stationCode;
+                const lineNumber = station?.line || '?';
+                const lineKey = station?.line ? `l${station.line}` : 'unknown';
                 
-                const equipmentText = change.current?.texto || change.previous?.texto;
-                
-                if (change.type === 'state_change' || change.type === 'new') {
-                    if (change.current?.estado === 1) {
-                        nowOperational.push(`- ${stationName}: ${equipmentText}`);
-                    } else if (change.current?.estado === 0) {
-                        nowNonOperational.push(`- ${stationName}: ${equipmentText}`);
-                    }
+                if (!lineGroups[lineKey]) {
+                    lineGroups[lineKey] = {
+                        lineNumber,
+                        lineEmoji: metroConfig.linesEmojis[lineKey] || '',
+                        items: []
+                    };
                 }
+                lineGroups[lineKey].items.push(change);
             });
             
-            // Add line section to embed
-            let lineSection = ` **👉 Línea ${metroConfig.linesEmojis[group.lineNumber]} **\n`;
+            // Create embed with title and timestamp
+            let embed = new EmbedBuilder()
+                .setColor(0x0052A5)
+                .setTitle(title)
+                .setDescription(`Última Actualización: ${this.timeHelpers.formatDateTime('DD/MM/YYYY HH:mm')}`)
+                .setTimestamp();
             
-            // Add operational changes
-            if (nowOperational.length > 0) {
-                lineSection += `*** ✅ Ahora Operativos:***\n${nowOperational.join('\n')}\n`;
-            }
-            
-            // Add non-operational changes
-            if (nowNonOperational.length > 0) {
-                lineSection += `*** ❌ Ahora Fuera de servicio:***\n${nowNonOperational.join('\n')}\n`;
-            }
-            
-            // Check if we need to split into a new embed
-            if (embed.toJSON().fields?.length > 0 && 
-                (JSON.stringify(embed.toJSON()).length + lineSection.length > maxEmbedLength - 2000)) {
-                embeds.push(embed);
-                embed = new EmbedBuilder()
-                    .setColor(0x0052A5)
-                    .setTitle(`${title} (Continuación)`)
-                    .setTimestamp();
-            }
-            
-            // Add line section as a field
-            embed.addFields({
-                name: '\u200B', // Zero-width space
-                value: lineSection,
-                inline: false
+            // Process each line group
+            Object.values(lineGroups).forEach(group => {
+                const nowOperational = [];
+                const nowNonOperational = [];
+                
+                // Separate operational and non-operational changes
+                group.items.forEach(change => {
+                    const stationCode = change.equipmentId.split('-')[0];
+                    const station = Object.values(metro._staticData.stations).find(s => s.code === stationCode);
+                    const stationName = station?.displayName || stationCode;
+                    
+                    const equipmentText = change.current?.texto || change.previous?.texto;
+                    
+                    if (change.type === 'state_change' || change.type === 'new') {
+                        if (change.current?.estado === 1) {
+                            nowOperational.push(`- ${stationName}: ${equipmentText}`);
+                        } else if (change.current?.estado === 0) {
+                            nowNonOperational.push(`- ${stationName}: ${equipmentText}`);
+                        }
+                    }
+                });
+                
+                // Add line section to embed
+                let lineSection = ` **👉 Línea ${metroConfig.linesEmojis[group.lineNumber]} **\n`;
+                
+                // Add operational changes
+                if (nowOperational.length > 0) {
+                    lineSection += `*** ✅ Ahora Operativos:***\n${nowOperational.join('\n')}\n`;
+                }
+                
+                // Add non-operational changes
+                if (nowNonOperational.length > 0) {
+                    lineSection += `*** ❌ Ahora Fuera de servicio:***\n${nowNonOperational.join('\n')}\n`;
+                }
+                
+                // Check if we need to split into a new embed
+                if (embed.toJSON().fields?.length > 0 && 
+                    (JSON.stringify(embed.toJSON()).length + lineSection.length > maxEmbedLength - 2000)) {
+                    embeds.push(embed);
+                    embed = new EmbedBuilder()
+                        .setColor(0x0052A5)
+                        .setTitle(`${title} (Continuación)`)
+                        .setTimestamp();
+                }
+                
+                // Add line section as a field
+                embed.addFields({
+                    name: '\u200B', // Zero-width space
+                    value: lineSection,
+                    inline: false
+                });
             });
-        });
+            
+            return embed;
+        };
         
-        return embed;
-    };
-    
-    // Create elevator embed if there are elevator changes
-    if (elevators.length > 0) {
-        const elevatorEmbed = createEquipmentEmbed(elevators, '♿ Resumen de Ascensores');
-        if (elevatorEmbed) embeds.push(elevatorEmbed);
+        // Create elevator embed if there are elevator changes
+        if (elevators.length > 0) {
+            const elevatorEmbed = createEquipmentEmbed(elevators, '♿ Resumen de Ascensores');
+            if (elevatorEmbed) embeds.push(elevatorEmbed);
+        }
+        
+        // Create escalator embed if there are escalator changes
+        if (escalators.length > 0) {
+            const escalatorEmbed = createEquipmentEmbed(escalators, '♿ Resumen de Escaleras Mecánicas');
+            if (escalatorEmbed) embeds.push(escalatorEmbed);
+        }
+        
+        return embeds;
     }
-    
-    // Create escalator embed if there are escalator changes
-    if (escalators.length > 0) {
-        const escalatorEmbed = createEquipmentEmbed(escalators, '♿ Resumen de Escaleras Mecánicas');
-        if (escalatorEmbed) embeds.push(escalatorEmbed);
-    }
-    
-    return embeds;
-}
-    
     
     // Helper method to split long strings into chunks
-chunkArray(str, size) {
-    const chunks = [];
-    for (let i = 0; i < str.length; i += size) {
-        chunks.push(str.substring(i, i + size));
+    chunkArray(str, size) {
+        const chunks = [];
+        for (let i = 0; i < str.length; i += size) {
+            chunks.push(str.substring(i, i + size));
+        }
+        return chunks;
     }
-    return chunks;
-}
     
     async formatTelegramMessages(changes) {
         if (!changes || changes.length === 0) return [];
