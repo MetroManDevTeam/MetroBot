@@ -361,7 +361,7 @@ class AccessibilityChangeDetector {
                 
                 // Save config
                 const existingLines = ['l1', 'l2', 'l3', 'l4', 'l4a', 'l5', 'l6'];
-const line = existingLines.some(l => stationKey.includes(l)) ? '' : ` ${line}`;
+ line = existingLines.some(l => stationKey.includes(l)) ? '' : ` ${line}`;
 
 await accessCore.saveAccessConfig(`${stationKey}${line}`, config);
             }
