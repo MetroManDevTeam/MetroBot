@@ -1,4 +1,4 @@
-const axios = require('axios');
+ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const TelegramBot = require('../../../../Telegram/bot');
@@ -297,8 +297,8 @@ class AccessibilityChangeDetector {
                 changelistory: []
             }
 
-           // config.elevators = [];
-           // config.escalators = [];
+         config.elevators = [];
+           config.escalators = [];
 
             //console.log(config)
             
