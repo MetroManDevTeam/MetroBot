@@ -277,8 +277,8 @@ class AccessibilityChangeDetector {
 
                 // Fix line format (ensure it's "l1", not "ll1")
                 const lineNumber = stationData.line;
-                const line = `${lineNumber}`.replace(/ll+/g, 'l');
-                const stationKey = `${stationData.displayName}`;
+                let line = `${lineNumber}`.replace(/ll+/g, 'l');
+                let stationKey = `${stationData.displayName}`;
                 
                 const config = await accessCore.getAccessConfig(stationKey) || {
                     station: stationData.displayName.toLowerCase(),
