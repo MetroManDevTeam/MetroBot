@@ -16,7 +16,7 @@ const DISCORD_CHANNEL = '1381634611225821346';
 const DISCORD_SUMMARY_CHANNEL = '901592257591930920';
 
 // Manual first load flag - set to true to process all equipment regardless of changes
-const MANUAL_FIRST_LOAD = true;
+const MANUAL_FIRST_LOAD = false;
 
 // MetroCore instance management (singleton pattern)
 let metroCoreInstance = null;
