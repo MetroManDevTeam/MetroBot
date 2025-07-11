@@ -399,16 +399,16 @@ if (from === 'Unknown' && to === 'Unknown') {
                     details: this.getChangeDetails(change, fullEquipmentId)
                 };
                 
-                config.changeHistory.unshift(changeEntry);
-                config.changelistory.unshift(changeEntry);
+                config.changeHistory?.unshift(changeEntry);
+                config.changelistory?.unshift(changeEntry);
             }
             
             // Trim history
-            if (config.changeHistory.length > 50) {
-                config.changeHistory = config.changeHistory.slice(0, 50);
+            if (config.changeHistory?.length > 50) {
+                config.changeHistory = config.changeHistory?.slice(0, 50);
             }
-            if (config.changelistory.length > 50) {
-                config.changelistory = config.changelistory.slice(0, 50);
+            if (config.changelistory?.length > 50) {
+                config.changelistory = config.changelistory?.slice(0, 50);
             }
             
             // Update lastUpdated timestamp
