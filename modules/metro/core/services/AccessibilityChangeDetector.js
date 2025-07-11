@@ -375,7 +375,9 @@ if (from === 'Unknown' && to === 'Unknown') {
                 //console.log(config);
 
                 const target = isElevator ? config.elevators : config.escalators;
-                
+
+
+                console.log(target)
                 const equipmentData = {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
