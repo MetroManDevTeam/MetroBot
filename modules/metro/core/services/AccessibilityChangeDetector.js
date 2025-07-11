@@ -262,6 +262,8 @@ class AccessibilityChangeDetector {
                 
                 // Extract station code (first part before hyphen)
                 const stationCode = fullEquipmentId.split('-')[0];
+                const equipCode = fullEquipmentId.split('-')[1];
+                
                 
                 // Get complete station data from MetroCore
                 const stationData = Object.values(metro._staticData.stations).find(
@@ -275,7 +277,7 @@ class AccessibilityChangeDetector {
 
                 // Fix line format (ensure it's "l1", not "ll1")
                 const lineNumber = stationData.line;
-                const line = `l${lineNumber}`.replace(/ll+/g, 'l');
+                const line = `${lineNumber}`.replace(/ll+/g, 'l');
                 const stationKey = `${stationData.displayName} L${lineNumber}`;
                 
                 const config = await accessCore.getAccessConfig(stationKey) || {
