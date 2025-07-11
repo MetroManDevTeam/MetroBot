@@ -278,7 +278,7 @@ class AccessibilityChangeDetector {
                 // Fix line format (ensure it's "l1", not "ll1")
                 const lineNumber = stationData.line;
                 const line = `${lineNumber}`.replace(/ll+/g, 'l');
-                const stationKey = `${stationData.displayName} L${lineNumber}`;
+                const stationKey = `${stationData.displayName} ${lineNumber}`;
                 
                 const config = await accessCore.getAccessConfig(stationKey) || {
                     station: stationData.displayName.toLowerCase(),
@@ -313,10 +313,10 @@ class AccessibilityChangeDetector {
                     to = stationData.areas[1] || 'Andén';
                 }
                 
-                const fullPath = `${from}→${to}`;
+                const fullPath = equipment.texto;
                 
                 const equipmentData = {
-                    id: fullEquipmentId, // Using full ID for consistency
+                    id: equipCode, // Using full ID for consistency
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
                     notes: equipment.texto || '',
