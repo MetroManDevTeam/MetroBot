@@ -15,6 +15,9 @@ const TELEGRAM_CHANNEL = '804';
 const DISCORD_CHANNEL = '1381634611225821346';
 const DISCORD_SUMMARY_CHANNEL = '901592257591930920';
 
+// Manual first load flag - set to true to process all equipment regardless of changes
+const MANUAL_FIRST_LOAD = true;
+
 // MetroCore instance management (singleton pattern)
 let metroCoreInstance = null;
 async function getMetroCore() {
@@ -176,9 +179,9 @@ class AccessibilityChangeDetector {
             let dataSource;
             let comparisonBaseline;
             
-            if (withinWindow) {
-                // During window: fetch live API data
-                this.logger.info('Fetching fresh data from API');
+            if (withinWindow || MANUAL_FIRST_LOAD) {
+                // During window or manual first load: fetch live API data
+                this.logger.info(MANUAL_FIRST_LOAD ? 'Manual first load - fetching fresh data' : 'Fetching fresh data from API');
                 const response = await axios.get(API_URL);
                 currentStates = response.data;
                 dataSource = 'API';
@@ -206,11 +209,16 @@ class AccessibilityChangeDetector {
                 return [];
             }
             
-            const changes = this.detectChanges(cleanCurrentStates, cleanComparisonBaseline);
+            const changes = MANUAL_FIRST_LOAD 
+                ? this.generateFullLoadChanges(cleanCurrentStates)
+                : this.detectChanges(cleanCurrentStates, cleanComparisonBaseline);
+            
             this.logger.info(`Detected ${changes.length} changes`);
 
             if (changes.length > 0) {
-                await this.notifyChanges(changes);
+                if (!MANUAL_FIRST_LOAD) {
+                    await this.notifyChanges(changes);
+                }
                 
                 // Process and store changes in the access files
                 await this.processAndStoreChanges(changes);
@@ -229,6 +237,15 @@ class AccessibilityChangeDetector {
         }
     }
 
+    generateFullLoadChanges(currentStates) {
+        // Treat all current equipment as "new" for the first load
+        return Object.entries(currentStates).map(([equipmentId, currentData]) => ({
+            equipmentId,
+            type: 'new',
+            current: currentData
+        }));
+    }
+
     async processAndStoreChanges(changes) {
         try {
             const accessCore = new AccessCore();
@@ -241,6 +258,7 @@ class AccessibilityChangeDetector {
 
                 // Use the full raw ID (e.g., "LEN-05eb02")
                 const fullEquipmentId = change.equipmentId;
+                const equipmentId = fullEquipmentId.split('-')[1]; // Use part after dash
                 
                 // Extract station code (first part before hyphen)
                 const stationCode = fullEquipmentId.split('-')[0];
@@ -255,12 +273,14 @@ class AccessibilityChangeDetector {
                     continue;
                 }
 
+                // Fix line format (ensure it's "l1", not "ll1")
                 const lineNumber = stationData.line;
-                const stationKey = `${stationData.displayName} L${lineNumber}`; // e.g., "Los Leones L1"
+                const line = `l${lineNumber}`.replace(/ll+/g, 'l');
+                const stationKey = `${stationData.displayName} L${lineNumber}`;
                 
                 const config = await accessCore.getAccessConfig(stationKey) || {
                     station: stationData.displayName.toLowerCase(),
-                    line: `l${lineNumber}`,
+                    line: line,
                     accesses: [],
                     elevators: [],
                     escalators: [],
@@ -294,7 +314,7 @@ class AccessibilityChangeDetector {
                 const fullPath = `${from}→${to}`;
                 
                 const equipmentData = {
-                    id: fullEquipmentId,
+                    id: fullEquipmentId, // Using full ID for consistency
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
                     notes: equipment.texto || '',
