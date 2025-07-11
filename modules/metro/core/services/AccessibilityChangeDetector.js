@@ -313,7 +313,7 @@ class AccessibilityChangeDetector {
                 let from = 'Unknown';
                 let to = 'Unknown';
                 
-                const pathMatch = equipment.texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|a|hasta)\s*(.+)/i);
+                const pathMatch = equipment.texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
                 if (pathMatch) {
                     from = pathMatch[1].trim();
                     to = pathMatch[2].trim();
