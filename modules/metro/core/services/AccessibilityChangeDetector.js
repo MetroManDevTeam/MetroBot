@@ -297,8 +297,8 @@ class AccessibilityChangeDetector {
                 changelistory: []
             }
 
-            config.elevators = [];
-            config.escalators = [];
+           // config.elevators = [];
+           // config.escalators = [];
 
             //console.log(config)
             
@@ -388,11 +388,11 @@ if (from === 'Unknown' && to === 'Unknown') {
                     id: equipCode,
                     status: equipment.estado === 1 ? 'operativa' : 'fuera de servicio',
                     lastUpdated: new Date().toISOString(),
-                    notes: target[equipCode].notes,
-                    from: target[equipCode].from,
-                    to: target[equipCode].to,
-                    fullPath: target[equipCode].fullPath,
-                    segments: target[equipCode].segments
+                    notes: target[equipCode]?.notes || equipment.notes,
+                    from: target[equipCode]?.from || from,
+                    to: target[equipCode]?.to || to,
+                    fullPath: target[equipCode]?.fullPath || fullPath,
+                    segments: target[equipCode]?.segments || [from, to]
                 };
                 
                 // Add to appropriate array
