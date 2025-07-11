@@ -286,7 +286,7 @@ class AccessibilityChangeDetector {
             let stationKey = `${stationData.displayName}`;
             
             // Load or create initial config for this station
-            const config = await accessCore.getAccessConfig(stationKey) || {
+            const config = await accessCore.getAccessConfig(`${stationKey}-${line}`) || {
                 station: stationData.displayName.toLowerCase(),
                 line: line,
                 accesses: [],
