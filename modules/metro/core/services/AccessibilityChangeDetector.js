@@ -297,8 +297,8 @@ class AccessibilityChangeDetector {
                 changelistory: []
             }
 
-         config.elevators = [];
-           config.escalators = [];
+        // config.elevators = [];
+         //config.escalators = [];
 
             //console.log(config)
             
