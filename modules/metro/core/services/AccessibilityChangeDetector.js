@@ -296,6 +296,8 @@ class AccessibilityChangeDetector {
                 lastUpdated: new Date().toISOString(),
                 changelistory: []
             };
+
+            console.log(config)
             
             // Process all changes for this station
             for (const change of stationChanges) {
@@ -315,7 +317,7 @@ let to = 'Unknown';
 const texto = equipment.texto || '';
 
 // Pattern 1: "desde X hacia Y"
-let pathMatch = texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|to|hasta)\s*(.+)/i);
+let pathMatch = texto.match(/(?:desde|from)\s*(.+?)\s*(?:hacia|hasta)\s*(.+)/i);
 
 // Pattern 2: "hacia Y" (split text around "hacia")
 if (!pathMatch) {
